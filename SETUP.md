@@ -4,7 +4,7 @@ Follow these steps in order. Everyone on the team should complete all of this be
 
 ## 1\. Install Python
 
-- Version: **Python 3.11 or 3.12**  
+- Version: **Python 3.12**  
 - Download: [https\://www\.python.org/downloads/](https://www.python.org/downloads/)  
 - **Windows users:** check "Add Python to PATH" on the first installer screen.  
 - Verify:  
