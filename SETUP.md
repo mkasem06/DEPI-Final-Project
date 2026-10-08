@@ -18,7 +18,6 @@ Follow these steps in order. Everyone on the team should complete all of this be
   - **Python** (Microsoft)  
   - **Pylance** (usually bundled with Python extension)  
   - **GitLens**  
-  - **ES7+ React/Redux snippets** (only if building the React dashboard)
 
 ## 3\. Install Git and set up GitHub
 
