@@ -99,7 +99,11 @@ sqlmap \--version
      
    ollama pull qwen2.5:7b-instruct 
      
-3. **Make sure `.env` is listed in `.gitignore` before your first commit.** This file must never be pushed to GitHub, even on a private repo. Each person should use their own key locally, or the team shares one key through a private channel outside of git.
+3. **Verify that the model was installed successfully:
+     
+   ollama list 
+
+4. No AI API key or .env secret is required. Ollama runs the model locally on your computer, so each team member should install Ollama and download the model on their own machine.
 
 ## 8\. Final sanity check
 
