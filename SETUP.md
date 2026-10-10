@@ -76,9 +76,7 @@ uvicorn
 
 python-dotenv
 
-anthropic
-
-(Swap `anthropic` for `openai` if the team uses GPT instead of Claude for the AI layer.)
+ollama
 
 ## 6\. Install sqlmap
 
@@ -94,12 +92,12 @@ Verify:
 
 sqlmap \--version
 
-## 7\. Set up the AI API key
+## 7\. Install Ollama
 
-1. Get an API key from [https\://console.anthropic.com/](https://console.anthropic.com/) (or [https\://platform.openai.com/](https://platform.openai.com/) for GPT).  
-2. Create a file named `.env` in the repo root:  
+1. Download and install Ollama for Windows: https://ollama.com/download/windows .  
+2. Open PowerShell or the VS Code terminal and download the model:  
      
-   ANTHROPIC\_API\_KEY=your-key-here  
+   ollama pull qwen2.5:7b-instruct 
      
 3. **Make sure `.env` is listed in `.gitignore` before your first commit.** This file must never be pushed to GitHub, even on a private repo. Each person should use their own key locally, or the team shares one key through a private channel outside of git.
 
