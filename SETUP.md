@@ -99,7 +99,7 @@ sqlmap \--version
      
    ollama pull qwen2.5:7b-instruct 
      
-3. **Verify that the model was installed successfully:
+3. Verify that the model was installed successfully:
      
    ollama list 
 
