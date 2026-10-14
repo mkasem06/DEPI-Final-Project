@@ -1,0 +1,8 @@
+# Secrets: never commit real targets or keys
+.env
+# Python virtual environment: each person makes their own
+venv/
+.venv/
+# Python cache files, created automatically
+__pycache__/
+*.pyc
