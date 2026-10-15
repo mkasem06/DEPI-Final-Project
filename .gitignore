@@ -1,8 +1,22 @@
+
 # Secrets: never commit real targets or keys
 .env
-# Python virtual environment: each person makes their own
+.env.*
+
+# Python virtual environment
 venv/
 .venv/
-# Python cache files, created automatically
+
+# Python cache files
 __pycache__/
 *.pyc
+
+# Local SQLite database
+backend/scans.db
+backend/scans.db-*
+
+# Downloaded security tools
+sqlmap/
+
+# Windows system files
+desktop.ini

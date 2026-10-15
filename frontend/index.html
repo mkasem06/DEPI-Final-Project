@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DEPI Pentesting Dashboard</title>
+
+    <!-- Connect our CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <!-- ============================= -->
+    <!-- MAIN DASHBOARD HEADING -->
+    <!-- ============================= -->
+
+    <h1>DEPI Pentesting Dashboard</h1>
+
+    <p>AI-Assisted Web Application Security Scanner</p>
+
+
+    <!-- ============================= -->
+    <!-- RECONNAISSANCE SCANNER -->
+    <!-- ============================= -->
+
+    <section class="recon-panel">
+
+        <div class="recon-top">
+
+            <div>
+                <span class="recon-eyebrow">
+                    ◈ SECURITY MODULE / 01
+                </span>
+
+                <h2>Reconnaissance</h2>
+
+                <p>Target intelligence & discovery</p>
+            </div>
+
+            <span class="recon-badge">DEMO MODE</span>
+
+        </div>
+
+
+        <!-- Recon form -->
+
+        <form id="recon-form">
+
+            <label for="target-url">
+                TARGET ENDPOINT
+            </label>
+
+            <div class="recon-input-row">
+
+                <input
+                    type="url"
+                    id="target-url"
+                    placeholder="https://example.com"
+                    required
+                >
+
+                <button type="submit" id="scan-button">
+                    ⚡ INITIALIZE RECON
+                </button>
+
+            </div>
+
+        </form>
+
+
+        <!-- Recon results -->
+
+        <div class="recon-output">
+
+            <div class="recon-output-title">
+
+                <span class="recon-dot"></span>
+
+                SCAN OUTPUT
+
+            </div>
+
+            <div id="recon-results" aria-live="polite">
+                › Awaiting target submission...
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- VULNERABILITY STATISTICS -->
+    <!-- ============================= -->
+
+    <h2>Vulnerability Statistics</h2>
+
+    <div id="stats">
+        Loading statistics...
+    </div>
+
+
+    <!-- ============================= -->
+    <!-- VULNERABILITY FINDINGS -->
+    <!-- ============================= -->
+
+    <h2>Vulnerability Findings</h2>
+
+    <label for="module-filter">
+        Filter by module:
+    </label>
+
+    <select id="module-filter">
+
+        <option value="">All Modules</option>
+        <option value="recon">Recon</option>
+        <option value="sqli">SQL Injection</option>
+        <option value="xss">XSS</option>
+        <option value="misconfig">Misconfiguration</option>
+
+    </select>
+
+    <div id="findings">
+        Loading findings...
+    </div>
+
+
+    <!-- ============================= -->
+    <!-- SCAN HISTORY -->
+    <!-- ============================= -->
+
+    <section class="history-panel">
+
+        <div class="history-heading">
+
+            <div>
+
+                <span class="history-eyebrow">
+                    ◈ ACTIVITY LOG
+                </span>
+
+                <h2>Scan History</h2>
+
+                <p>Previously recorded security assessments</p>
+
+            </div>
+
+            <span class="history-badge">
+                DEMO RECORDS
+            </span>
+
+        </div>
+
+
+        <!-- Scan History table -->
+
+        <div class="history-table-wrapper">
+
+            <table class="history-table">
+
+                <thead>
+                    <tr>
+                        <th>SCAN ID</th>
+                        <th>TARGET</th>
+                        <th>TYPE</th>
+                        <th>STATUS</th>
+                        <th>DATE</th>
+                    </tr>
+                </thead>
+
+                <tbody id="history-body">
+
+                    <tr>
+                        <td colspan="5">
+                            Loading scan history...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================= -->
+
+    <script src="/static/script.js"></script>
+
+</body>
+</html>
