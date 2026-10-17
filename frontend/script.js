@@ -190,11 +190,10 @@ reconForm.addEventListener("submit", async function(event) {
     const resultsDiv = document.getElementById("recon-results");
 
     // Display a loading message
-    resultsDiv.textContent = "Preparing mock Recon results...";
-
+    resultsDiv.textContent = "Scanning target...";
     try {
         // Send a POST request to FastAPI
-        const response = await fetch("/api/demo/recon", {
+        const response = await fetch("/api/scans/recon", {
             method: "POST",
 
             headers: {
