@@ -14,8 +14,13 @@ Output shape of run():
   {
     "tech_stack": {"server": "...", "powered_by": "...", "cms_or_generator": "..."},
     "endpoints":  ["https://site.com/", "https://site.com/login", ...],
-    "params":     [{"url": "...", "method": "GET" or "POST", "params": ["name", ...]}]
+    "params":     [{"url": "...", "method": "GET" or "POST", "params": ["name", ...]}],
+    "forms":      [{"url": "...", "method": "POST", "params": ["name", ...],
+                    "page_url": "...", "form_index": 0}]
   }
+
+`params` keeps its legacy URL/method/parameter deduplication contract. `forms`
+retains each discovered form and its source metadata for XSS scanning.
 """
 
 import os
@@ -83,11 +88,12 @@ def extract_params(soup, current_url):
 
     Returns a list such as:
       [{"url": "https://site.com/login", "method": "POST",
-        "params": ["username", "password"]}]
+        "params": ["username", "password"], "page_url": "...",
+        "form_index": 0}]
     """
     forms_data = []
 
-    for form in soup.find_all("form"):
+    for form_index, form in enumerate(soup.find_all("form")):
         method = (form.get("method") or "get").strip().upper()
         action = form.get("action", "")
         form_url = urljoin(current_url, action)
@@ -101,20 +107,26 @@ def extract_params(soup, current_url):
         names = list(dict.fromkeys(names))
 
         if names:
-            forms_data.append({"url": form_url, "method": method, "params": names})
+            forms_data.append({
+                "url": form_url,
+                "method": method,
+                "params": names,
+                "page_url": current_url,
+                "form_index": form_index,
+            })
 
     return forms_data
 
 
 def _remove_duplicate_params(params_list):
     """
-    Helper: the same form can appear on many pages (for example a search box in
-    the header). Keep only one copy of each (url + method + param names).
+    Helper: keep one copy of each (url + method + param names) entry for
+    the existing Recon consumers.
     """
     seen = set()
     unique = []
     for item in params_list:
-        key = (item["url"], item["method"], tuple(item["params"]))  # tuple: sets only accept unchangeable items fa mynf34 n use list
+        key = (item["url"], item["method"], tuple(item["params"]))
         if key not in seen:
             seen.add(key)
             unique.append(item)
@@ -137,7 +149,8 @@ def crawl_endpoints(start_url, max_depth=2, max_pages=100):
     visited = {start_url}
     scan_results = {
         "endpoints": [],
-        "params": []
+        "params": [],
+        "forms": [],
     }
 
     target_domain = urlparse(start_url).netloc  # scope: only this website is crawled
@@ -178,7 +191,9 @@ def crawl_endpoints(start_url, max_depth=2, max_pages=100):
                 continue
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            scan_results["params"].extend(extract_params(soup, final_url))
+            forms = extract_params(soup, final_url)
+            scan_results["params"].extend(forms)
+            scan_results["forms"].extend(forms)
 
             if depth >= max_depth:
                 continue
@@ -230,7 +245,8 @@ def run(target_url):
     return {
         "tech_stack": tech_stack,
         "endpoints": crawl_data["endpoints"],
-        "params": crawl_data["params"]
+        "params": crawl_data["params"],
+        "forms": crawl_data["forms"],
     }
 
 

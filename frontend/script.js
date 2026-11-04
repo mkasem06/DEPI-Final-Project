@@ -258,6 +258,202 @@ createSection("Discovered Parameters", data.params || []);
 });
 
 
+// ---------------------------------------
+// XSS SCAN FORM
+// ---------------------------------------
+
+const xssForm = document.getElementById("xss-form");
+
+if (xssForm) {
+    xssForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const targetInput = document.getElementById("xss-target-url");
+        const resultsDiv = document.getElementById("xss-results");
+        const scanButton = document.getElementById("xss-scan-button");
+
+        if (!targetInput || !resultsDiv || !scanButton) {
+            console.error("XSS form is missing required HTML elements.");
+            return;
+        }
+
+        const targetUrl = targetInput.value.trim();
+
+        resultsDiv.textContent = "XSS scan running...";
+        scanButton.disabled = true;
+
+        try {
+            const response = await fetch("/api/scans/xss", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    target_url: targetUrl
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || "XSS scan failed");
+            }
+
+            resultsDiv.replaceChildren();
+
+            const summary = document.createElement("p");
+            const scanStatus = String(data.status || "unknown").toUpperCase();
+            summary.textContent =
+                `Scan status: ${scanStatus}. Findings: ${Number(data.findings_count) || 0}`;
+            resultsDiv.appendChild(summary);
+
+            const diagnostics = data.diagnostics || {};
+            const coverage = document.createElement("section");
+            coverage.className = "xss-diagnostics";
+
+            const coverageHeading = document.createElement("h3");
+            coverageHeading.textContent = "Scan coverage";
+            coverage.appendChild(coverageHeading);
+
+            const coverageSummary = document.createElement("p");
+            coverageSummary.textContent =
+                `Forms discovered: ${Number(diagnostics.form_count) || 0}; ` +
+                `tested: ${Number(diagnostics.forms_tested) || 0}; ` +
+                `skipped: ${Number(diagnostics.forms_skipped) || 0}; ` +
+                `failed: ${Number(diagnostics.forms_failed) || 0}; ` +
+                `incomplete: ${Number(diagnostics.forms_incomplete) || 0}; ` +
+                `HTTP requests: ${Number(diagnostics.requests_attempted) || 0}.`;
+            coverage.appendChild(coverageSummary);
+
+            const endpointReports = Array.isArray(diagnostics.endpoints)
+                ? diagnostics.endpoints
+                : [];
+            endpointReports.forEach(function (endpoint) {
+                const item = document.createElement("details");
+                const heading = document.createElement("summary");
+                const label = endpoint.is_form
+                    ? `Form ${endpoint.form_index}`
+                    : "Endpoint";
+                heading.textContent =
+                    `${label}: ${endpoint.method || "GET"} ${endpoint.url || "unknown"} — ` +
+                    `${String(endpoint.status || "unknown").toUpperCase()}`;
+                item.appendChild(heading);
+
+                if (endpoint.reason) {
+                    const reason = document.createElement("p");
+                    reason.textContent = endpoint.reason;
+                    item.appendChild(reason);
+                }
+
+                if (endpoint.page_url) {
+                    const source = document.createElement("p");
+                    source.textContent = "Form source: " + endpoint.page_url;
+                    item.appendChild(source);
+                }
+
+                const parameters = Array.isArray(endpoint.parameters)
+                    ? endpoint.parameters
+                    : [];
+                parameters.forEach(function (parameter) {
+                    const detail = document.createElement("p");
+                    detail.textContent =
+                        `Parameter ${parameter.name}: ${parameter.status}` +
+                        (parameter.reason ? ` — ${parameter.reason}` : "") +
+                        `; payload attempts: ${Number(parameter.payload_attempts) || 0}; ` +
+                        `responses: ${Number(parameter.responses) || 0}.`;
+                    item.appendChild(detail);
+                });
+
+                coverage.appendChild(item);
+            });
+            resultsDiv.appendChild(coverage);
+
+            const issues = Array.isArray(diagnostics.issues)
+                ? diagnostics.issues
+                : [];
+            if (issues.length > 0) {
+                const issueSection = document.createElement("section");
+                const issueHeading = document.createElement("h3");
+                issueHeading.textContent = "Scan errors and diagnostics";
+                issueSection.appendChild(issueHeading);
+
+                issues.forEach(function (issue) {
+                    const detail = document.createElement("p");
+                    const location = issue.url
+                        ? ` (${issue.url}${issue.parameter ? `, ${issue.parameter}` : ""})`
+                        : "";
+                    detail.textContent =
+                        `[${String(issue.kind || "issue").toUpperCase()}] ` +
+                        `${issue.message || "Unknown scan issue"}${location}`;
+                    issueSection.appendChild(detail);
+                });
+
+                resultsDiv.appendChild(issueSection);
+            }
+
+            const findings = Array.isArray(data.findings)
+                ? data.findings
+                : [];
+
+            if (findings.length === 0) {
+                const empty = document.createElement("p");
+                empty.textContent = data.status === "completed"
+                    ? "Scan completed; no XSS findings were reported."
+                    : "No XSS findings were reported. This scan was incomplete; review coverage and diagnostics.";
+                resultsDiv.appendChild(empty);
+            }
+
+            findings.forEach(function (finding) {
+                const card = document.createElement("article");
+                card.className = "finding-card";
+
+                const title = document.createElement("h3");
+                title.textContent = finding.finding || "XSS finding";
+
+                const severity = document.createElement("p");
+                severity.textContent =
+                    "Severity: " + (finding.severity || "Unknown");
+
+                const target = document.createElement("p");
+                target.textContent =
+                    "Target: " + (finding.target || targetUrl);
+
+                const evidence = document.createElement("p");
+                evidence.textContent =
+                    "Evidence: " + (finding.evidence || "N/A");
+
+                const confidence = document.createElement("p");
+                confidence.textContent =
+                    "Confidence: " + (finding.confidence ?? "N/A");
+
+                card.append(
+                    title,
+                    severity,
+                    target,
+                    evidence,
+                    confidence
+                );
+
+                resultsDiv.appendChild(card);
+            });
+
+            const filter = document.getElementById("module-filter");
+
+            await Promise.all([
+                loadStats(),
+                loadFindings(filter ? filter.value : ""),
+                loadScanHistory()
+            ]);
+        } catch (error) {
+            resultsDiv.textContent = "Error: " + error.message;
+            console.error("XSS scan error:", error);
+        } finally {
+            scanButton.disabled = false;
+        }
+    });
+}
+
+
 async function loadScanHistory() {
 
     const historyBody = document.getElementById("history-body");

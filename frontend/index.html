@@ -92,6 +92,52 @@
 
     </section>
 
+    <section class="recon-panel">
+
+        <div class="recon-top">
+            <div>
+                <span class="recon-eyebrow">
+                    ◈ SECURITY MODULE / 02
+                </span>
+
+                <h2>Reflected XSS Assessment</h2>
+
+                <p>Run the XSS scanner only against the server-authorized target.</p>
+            </div>
+        </div>
+
+        <form id="xss-form">
+            <label for="xss-target-url">
+                AUTHORIZED TARGET ENDPOINT
+            </label>
+
+            <div class="recon-input-row">
+                <input
+                    type="url"
+                    id="xss-target-url"
+                    placeholder="https://authorized-example.com"
+                    required
+                >
+
+                <button type="submit" id="xss-scan-button">
+                    ⚡ RUN XSS SCAN
+                </button>
+            </div>
+        </form>
+
+        <div class="recon-output">
+            <div class="recon-output-title">
+                <span class="recon-dot"></span>
+                XSS SCAN OUTPUT
+            </div>
+
+            <div id="xss-results" aria-live="polite">
+                › Awaiting authorized target submission...
+            </div>
+        </div>
+
+    </section>
+
 
     <!-- ============================= -->
     <!-- VULNERABILITY STATISTICS -->
