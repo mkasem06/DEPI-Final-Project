@@ -115,7 +115,7 @@ def get_scan_by_id(scan_id):
 
 
 def get_all_findings(module=None):
-    """Return findings saved by completed scans, optionally filtered by module."""
+    """Return findings from completed scans and incomplete XSS scans."""
     findings = []
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -124,7 +124,10 @@ def get_all_findings(module=None):
         rows = conn.execute("""
             SELECT scan_type, results
             FROM scans
-            WHERE status = 'completed'
+            WHERE (
+                status = 'completed'
+                OR (scan_type = 'xss' AND status = 'incomplete')
+            )
               AND scan_type != 'recon'
               AND results IS NOT NULL
             ORDER BY id DESC

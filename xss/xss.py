@@ -1308,7 +1308,20 @@ def _parse_endpoints(recon_output):
     input isn't a recognizable shape at all (caller should return [] then).
     """
     if isinstance(recon_output, dict):
-        return recon_output.get("params", [])
+        params = recon_output.get("params", [])
+        forms = recon_output.get("forms")
+        if not isinstance(forms, list):
+            return params
+
+        endpoints = [
+            endpoint for endpoint in params
+            if not (
+                isinstance(endpoint, dict)
+                and "page_url" in endpoint
+                and "form_index" in endpoint
+            )
+        ]
+        return endpoints + forms
     if isinstance(recon_output, list):
         return recon_output
     return None

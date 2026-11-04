@@ -14,8 +14,13 @@ Output shape of run():
   {
     "tech_stack": {"server": "...", "powered_by": "...", "cms_or_generator": "..."},
     "endpoints":  ["https://site.com/", "https://site.com/login", ...],
-    "params":     [{"url": "...", "method": "GET" or "POST", "params": ["name", ...]}]
+    "params":     [{"url": "...", "method": "GET" or "POST", "params": ["name", ...]}],
+    "forms":      [{"url": "...", "method": "POST", "params": ["name", ...],
+                    "page_url": "...", "form_index": 0}]
   }
+
+`params` keeps its legacy URL/method/parameter deduplication contract. `forms`
+retains each discovered form and its source metadata for XSS scanning.
 """
 
 import os
@@ -115,19 +120,13 @@ def extract_params(soup, current_url):
 
 def _remove_duplicate_params(params_list):
     """
-    Helper: keep one copy of each discovered form, while retaining forms on
-    different pages because their cookies and hidden fields can differ.
+    Helper: keep one copy of each (url + method + param names) entry for
+    the existing Recon consumers.
     """
     seen = set()
     unique = []
     for item in params_list:
-        key = (
-            item["url"],
-            item["method"],
-            tuple(item["params"]),
-            item.get("page_url"),
-            item.get("form_index"),
-        )
+        key = (item["url"], item["method"], tuple(item["params"]))
         if key not in seen:
             seen.add(key)
             unique.append(item)
@@ -150,7 +149,8 @@ def crawl_endpoints(start_url, max_depth=2, max_pages=100):
     visited = {start_url}
     scan_results = {
         "endpoints": [],
-        "params": []
+        "params": [],
+        "forms": [],
     }
 
     target_domain = urlparse(start_url).netloc  # scope: only this website is crawled
@@ -191,7 +191,9 @@ def crawl_endpoints(start_url, max_depth=2, max_pages=100):
                 continue
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            scan_results["params"].extend(extract_params(soup, final_url))
+            forms = extract_params(soup, final_url)
+            scan_results["params"].extend(forms)
+            scan_results["forms"].extend(forms)
 
             if depth >= max_depth:
                 continue
@@ -243,7 +245,8 @@ def run(target_url):
     return {
         "tech_stack": tech_stack,
         "endpoints": crawl_data["endpoints"],
-        "params": crawl_data["params"]
+        "params": crawl_data["params"],
+        "forms": crawl_data["forms"],
     }
 
 

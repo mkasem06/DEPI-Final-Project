@@ -80,6 +80,34 @@ class TestFormSubmission(unittest.TestCase):
         self.assertEqual(endpoints[1]["page_url"], "https://example.com/form")
         self.assertEqual(endpoints[1]["form_index"], 1)
 
+    def test_recon_dedup_contract_keeps_full_forms_for_xss(self):
+        forms = [
+            {
+                "url": "https://example.com/submit",
+                "method": "POST",
+                "params": ["body"],
+                "page_url": page_url,
+                "form_index": 0,
+            }
+            for page_url in (
+                "https://example.com/first",
+                "https://example.com/second",
+            )
+        ]
+        query = {
+            "url": "https://example.com/search",
+            "method": "GET",
+            "params": ["q"],
+        }
+
+        recon_params = recon._remove_duplicate_params([query, *forms])
+
+        self.assertEqual(len(recon_params), 2)
+        self.assertEqual(xss._parse_endpoints({
+            "params": recon_params,
+            "forms": forms,
+        }), [query, *forms])
+
     def test_form_defaults_csrf_token_and_session_cookie_are_preserved(self):
         adapter = FormSessionAdapter()
         session = requests.Session()
