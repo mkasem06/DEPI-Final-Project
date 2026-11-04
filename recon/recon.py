@@ -83,11 +83,12 @@ def extract_params(soup, current_url):
 
     Returns a list such as:
       [{"url": "https://site.com/login", "method": "POST",
-        "params": ["username", "password"]}]
+        "params": ["username", "password"], "page_url": "...",
+        "form_index": 0}]
     """
     forms_data = []
 
-    for form in soup.find_all("form"):
+    for form_index, form in enumerate(soup.find_all("form")):
         method = (form.get("method") or "get").strip().upper()
         action = form.get("action", "")
         form_url = urljoin(current_url, action)
@@ -101,20 +102,32 @@ def extract_params(soup, current_url):
         names = list(dict.fromkeys(names))
 
         if names:
-            forms_data.append({"url": form_url, "method": method, "params": names})
+            forms_data.append({
+                "url": form_url,
+                "method": method,
+                "params": names,
+                "page_url": current_url,
+                "form_index": form_index,
+            })
 
     return forms_data
 
 
 def _remove_duplicate_params(params_list):
     """
-    Helper: the same form can appear on many pages (for example a search box in
-    the header). Keep only one copy of each (url + method + param names).
+    Helper: keep one copy of each discovered form, while retaining forms on
+    different pages because their cookies and hidden fields can differ.
     """
     seen = set()
     unique = []
     for item in params_list:
-        key = (item["url"], item["method"], tuple(item["params"]))  # tuple: sets only accept unchangeable items fa mynf34 n use list
+        key = (
+            item["url"],
+            item["method"],
+            tuple(item["params"]),
+            item.get("page_url"),
+            item.get("form_index"),
+        )
         if key not in seen:
             seen.add(key)
             unique.append(item)
