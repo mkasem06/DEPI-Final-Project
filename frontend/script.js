@@ -1,3 +1,4 @@
+let currentScanId = null;
 
 async function loadStats() {
     try {
@@ -339,3 +340,82 @@ async function loadScanHistory() {
 
 // Load saved scans when the page opens
 loadScanHistory();
+
+
+const fullScanButton = document.getElementById("full-scan-btn");
+
+if (fullScanButton) {
+    fullScanButton.addEventListener("click", async function () {
+        const targetUrl = document.getElementById("target-url").value.trim();
+        const resultsDiv = document.getElementById("recon-results");
+
+        if (!targetUrl) {
+            resultsDiv.textContent = "Please enter a target URL.";
+            return;
+        }
+
+        fullScanButton.disabled = true;
+        resultsDiv.textContent = "Full scan running. Please wait...";
+
+        try {
+            const response = await fetch("/api/scans/full", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    target_url: targetUrl
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : JSON.stringify(data.detail || "Full scan failed")
+                );
+            }
+
+            currentScanId = data.scan_id;
+
+            resultsDiv.textContent = "Full scan completed. Refreshing results...";
+
+            await Promise.all([
+                loadStats(),
+                loadFindings(
+                    document.getElementById("module-filter")?.value || ""
+                ),
+                loadScanHistory()
+            ]);
+
+            resultsDiv.textContent =
+                "Scan request completed. Check the findings and scan history.";
+
+        } catch (error) {
+            resultsDiv.textContent = "Error: " + error.message;
+            console.error(error);
+        } finally {
+            fullScanButton.disabled = false;
+        }
+    });
+}
+
+
+/* PRINT REPORT FOR CURRENT SCAN */
+
+document.getElementById("print-dashboard")
+    ?.addEventListener("click", function () {
+
+        if (currentScanId == null) {
+            alert("Please complete a full scan first.");
+            return;
+        }
+
+        window.open(
+            `/api/scans/${currentScanId}/report/html`,
+            "_blank"
+        );
+
+    });

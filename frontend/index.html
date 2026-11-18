@@ -22,7 +22,11 @@
 
     <p>AI-Assisted Web Application Security Scanner</p>
 
-
+    <div class="dashboard-actions">
+     <button type="button" id="print-dashboard">
+            🖨 PRINT DASHBOARD
+    </button>
+    </div>
     <!-- ============================= -->
     <!-- RECONNAISSANCE SCANNER -->
     <!-- ============================= -->
@@ -65,6 +69,10 @@
 
                 <button type="submit" id="scan-button">
                     ⚡ INITIALIZE RECON
+                </button>
+
+                <button type="button" id="full-scan-btn">
+                    ⚡ RUN FULL SCAN
                 </button>
 
             </div>
@@ -121,6 +129,7 @@
         <option value="sqli">SQL Injection</option>
         <option value="xss">XSS</option>
         <option value="misconfig">Misconfiguration</option>
+        <option value="bola">BOLA</option> 
 
     </select>
 
@@ -150,7 +159,7 @@
             </div>
 
             <span class="history-badge">
-                DEMO RECORDS
+                SCAN RECORDS
             </span>
 
         </div>

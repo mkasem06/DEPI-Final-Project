@@ -1027,3 +1027,307 @@ h2,
         padding: 18px;
     }
 }
+
+
+/* FULL SCAN BUTTON */
+
+#full-scan-btn {
+    padding: 14px 24px;
+    border: 1px solid #a855f7;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #5227a5, #7c3aed);
+    color: white;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.4);
+    transition: 0.25s ease;
+}
+
+#full-scan-btn:hover {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+    transform: translateY(-2px);
+}
+
+#full-scan-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+    transform: none;
+}
+
+/* PRINT DASHBOARD BUTTON */
+
+.dashboard-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0 30px;
+}
+
+#print-dashboard {
+    padding: 12px 24px;
+    border: 1px solid #00e5ff;
+    border-radius: 10px;
+    background: rgba(0, 229, 255, 0.08);
+    color: #00e5ff;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.25);
+    transition: 0.25s ease;
+}
+
+#print-dashboard:hover {
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 28px rgba(0, 229, 255, 0.6);
+}
+
+/* RESPONSIVE BUTTON LAYOUT */
+
+@media (max-width: 850px) {
+    .recon-input-row {
+        flex-wrap: wrap;
+    }
+
+    #full-scan-btn {
+        width: 100%;
+    }
+}
+
+/* PRINT-FRIENDLY DASHBOARD */
+
+@media print {
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    #scan-button,
+    #full-scan-btn,
+    #print-dashboard,
+    #module-filter,
+    #target-url {
+        display: none !important;
+    }
+
+    .dashboard-actions {
+        display: none !important;
+    }
+
+    .stat-card,
+    .finding-card,
+    .recon-panel,
+    .history-panel {
+        box-shadow: none !important;
+        break-inside: avoid;
+        border-color: #ccc !important;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .history-table th,
+    .history-table td {
+        color: black !important;
+        border: 1px solid #ccc !important;
+    }
+}
+
+
+/* =========================================
+   CLEAN PROFESSIONAL PDF REPORT
+========================================= */
+
+@page {
+    size: A4 portrait;
+    margin: 14mm;
+}
+
+@media print {
+
+    html, body {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #111827 !important;
+        font-size: 11pt !important;
+        overflow: visible !important;
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Hide interactive controls */
+    button,
+    input,
+    select,
+    label[for="target-url"],
+    label[for="module-filter"],
+    .dashboard-actions,
+    .recon-output,
+    .recon-panel {
+        display: none !important;
+    }
+
+    /* Main headings */
+    h1, h2, h3, p, span {
+        color: #111827 !important;
+        opacity: 1 !important;
+    }
+
+    h1 {
+        font-size: 21pt !important;
+        margin: 0 0 8mm !important;
+    }
+
+    h2 {
+        font-size: 15pt !important;
+        margin: 8mm 0 4mm !important;
+        break-after: avoid;
+    }
+
+    /* Statistics */
+    #stats {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 4mm !important;
+        width: 100% !important;
+    }
+
+    .stat-card {
+        position: static !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 5mm !important;
+        margin: 0 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 3mm !important;
+        background: #fff !important;
+        break-inside: avoid !important;
+    }
+
+    .stat-card::before,
+    .stat-card::after,
+    .stat-bar {
+        display: none !important;
+    }
+
+    .stat-label {
+        display: block !important;
+        font-size: 9pt !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+    }
+
+    .stat-number {
+        display: block !important;
+        position: static !important;
+        font-size: 24pt !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        margin-top: 2mm !important;
+        color: #111827 !important;
+    }
+
+    /* Findings */
+    #findings {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .finding-card {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 0 5mm !important;
+        padding: 5mm !important;
+        background: #fff !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 3mm !important;
+        break-inside: avoid-page;
+        overflow: visible !important;
+    }
+
+    .finding-card::before,
+    .finding-card::after {
+        display: none !important;
+    }
+
+    .finding-card * {
+        color: #111827 !important;
+        overflow-wrap: anywhere !important;
+        white-space: normal !important;
+    }
+
+    .finding-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 4mm !important;
+        align-items: flex-start !important;
+    }
+
+    .severity-badge {
+        position: static !important;
+        flex-shrink: 0;
+        border: 1px solid #94a3b8 !important;
+        background: #f1f5f9 !important;
+        color: #111827 !important;
+    }
+
+    /* Scan history */
+    .history-panel {
+        width: 100% !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        overflow: visible !important;
+    }
+
+    .history-table-wrapper {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    .history-table {
+        width: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+        font-size: 8pt !important;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 2mm !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #111827 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .history-table thead {
+        display: table-header-group;
+    }
+
+    .history-table tr {
+        break-inside: avoid;
+    }
+
+    .history-badge {
+        display: none !important;
+    }
+}
