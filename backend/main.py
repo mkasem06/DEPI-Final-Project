@@ -1,6 +1,7 @@
 
 import ipaddress
 import socket
+import os
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -8,15 +9,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 from backend.database import (
     init_db,
     save_scan,
-    get_scan_history
+    get_scan_history,
+    get_all_findings,
 )
 
 from recon.recon import run as run_recon
+from xss.xss import run as run_xss
 
+load_dotenv()
 
 # ---------------------------------------
 # INITIALIZE FASTAPI
@@ -159,26 +164,95 @@ def start_recon(request: ReconRequest):
 
 
 # ---------------------------------------
+# XSS SCAN
+# ---------------------------------------
+
+@app.post("/api/scans/xss")
+def start_xss_scan(request: ReconRequest):
+    validate_target(request.target_url)
+
+    authorized_target = os.getenv("AUTHORIZED_TARGET")
+
+    if not authorized_target:
+        raise HTTPException(
+            status_code=500,
+            detail="Authorized target is not configured",
+        )
+
+    try:
+        authorized = urlparse(authorized_target)
+        requested = urlparse(request.target_url)
+
+        authorized_port = authorized.port or (
+            443 if authorized.scheme == "https" else 80
+        )
+        requested_port = requested.port or (
+            443 if requested.scheme == "https" else 80
+        )
+
+        if (
+            requested.scheme != authorized.scheme
+            or requested.hostname != authorized.hostname
+            or requested_port != authorized_port
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Target is outside the authorized scope",
+            )
+
+        recon_results = run_recon(request.target_url)
+
+        if "error" in recon_results.get("tech_stack", {}):
+            raise RuntimeError("Reconnaissance failed")
+
+        diagnostics = {}
+        findings = run_xss(recon_results, diagnostics=diagnostics)
+
+        if not isinstance(findings, list):
+            raise RuntimeError("XSS scanner returned an invalid result")
+
+        scan_status = diagnostics.get("status", "incomplete")
+        save_scan(
+            target_url=request.target_url,
+            scan_type="xss",
+            status=scan_status,
+            results=findings,
+        )
+
+        return {
+            "target_url": request.target_url,
+            "scan_type": "xss",
+            "status": scan_status,
+            "findings_count": len(findings),
+            "findings": findings,
+            "diagnostics": diagnostics,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        print(f"[!] XSS scan failed: {error}")
+
+        save_scan(
+            target_url=request.target_url,
+            scan_type="xss",
+            status="failed",
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="XSS scan failed",
+        )
+
+
+# ---------------------------------------
 # VULNERABILITY FINDINGS
 # ---------------------------------------
 
 @app.get("/api/findings")
 def get_findings(module: Optional[str] = None):
-
-    # Real vulnerability scanner modules
-    # will populate this in the future.
-    # No mock vulnerabilities.
-
-    findings = []
-
-    if module is not None:
-        findings = [
-            finding
-            for finding in findings
-            if finding.get("module") == module
-        ]
-
-    return findings
+    return get_all_findings(module=module)
 
 
 # ---------------------------------------

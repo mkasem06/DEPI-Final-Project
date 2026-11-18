@@ -112,3 +112,48 @@ def get_scan_by_id(scan_id):
             scan["results"] = json.loads(scan["results"])
 
         return scan
+
+
+def get_all_findings(module=None):
+    """Return findings from completed scans and incomplete XSS scans."""
+    findings = []
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+
+        rows = conn.execute("""
+            SELECT scan_type, results
+            FROM scans
+            WHERE (
+                status = 'completed'
+                OR (scan_type = 'xss' AND status = 'incomplete')
+            )
+              AND scan_type != 'recon'
+              AND results IS NOT NULL
+            ORDER BY id DESC
+        """).fetchall()
+
+    for row in rows:
+        try:
+            results = json.loads(row["results"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        if not isinstance(results, list):
+            continue
+
+        for finding in results:
+            if not isinstance(finding, dict):
+                continue
+
+            finding_module = finding.get("module")
+            finding_name = finding.get("finding")
+            if not isinstance(finding_module, str) or not isinstance(finding_name, str):
+                continue
+
+            if module and finding_module.lower() != module.lower():
+                continue
+
+            findings.append(finding)
+
+    return findings
