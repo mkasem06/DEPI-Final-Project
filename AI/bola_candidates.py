@@ -141,3 +141,16 @@ def build_candidates_from_recon(target_url: str, recon_output: dict) -> list:
     candidates = _path_candidates(target_url, endpoints)
     candidates += _query_body_candidates(params)
     return candidates
+def build_candidates_from_paths(paths: list) -> list:
+    """Manual fallback: turn path templates like '/api/orders/{id}' into candidates."""
+    candidates = []
+    for path in paths or []:
+        if isinstance(path, str) and path.startswith("/") and "{id}" in path:
+            candidates.append({
+                "method": "GET",
+                "path": path,
+                "id_param": "id",
+                "id_location": "path",
+                "rationale": "Manually supplied candidate path.",
+            })
+    return candidates
