@@ -19,8 +19,8 @@ Usage:
 
 from datetime import datetime, timezone
 
-from bola_tester import run_bola_test
-from bola_agent import run_bola_agent
+from AI.bola_tester import run_bola_test
+from AI.bola_agent import run_bola_agent
 
 
 def run_bola_comparison(base_url: str, candidate: dict, user_a, user_b) -> dict:
