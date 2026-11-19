@@ -419,3 +419,315 @@ document.getElementById("print-dashboard")
         );
 
     });
+
+
+/* ==========================================
+   BOLA ASSESSMENT PANEL
+========================================== */
+
+const bolaForm = document.getElementById("bola-form");
+const bolaResults = document.getElementById("bola-results");
+const bolaScanBtn = document.getElementById("bola-scan-btn");
+
+console.log("BOLA initialization:", {
+    form: !!bolaForm,
+    results: !!bolaResults,
+    button: !!bolaScanBtn
+});
+
+function bolaElement(tag, text, className) {
+  const element = document.createElement(tag);
+
+  if (text !== undefined && text !== null) {
+    element.textContent = String(text);
+  }
+
+  if (className) {
+    element.className = className;
+  }
+
+  return element;
+}
+
+function bolaAddField(parent, label, value) {
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+
+  const row = bolaElement("p");
+  const heading = bolaElement("strong", `${label}: `);
+
+  row.appendChild(heading);
+  row.appendChild(
+    document.createTextNode(String(value))
+  );
+
+  parent.appendChild(row);
+}
+
+function bolaClearResults() {
+  bolaResults.replaceChildren();
+}
+
+function bolaShowMessage(message) {
+  bolaClearResults();
+  bolaResults.appendChild(bolaElement("p", message));
+}
+
+
+
+function bolaRenderFindings(data) {
+  bolaClearResults();
+
+  const scanId = data.scan_id ?? "Unknown";
+  const findings = Array.isArray(data.findings)
+    ? data.findings
+    : [];
+
+  bolaResults.appendChild(
+    bolaElement("h3", `BOLA Scan #${scanId}`)
+  );
+
+  bolaResults.appendChild(
+    bolaElement(
+      "p",
+      `Total findings: ${findings.length}`
+    )
+  );
+
+  if (findings.length === 0) {
+    bolaResults.appendChild(
+      bolaElement("p", "No BOLA vulnerabilities found.")
+    );
+    return;
+  }
+
+  findings.forEach((finding) => {
+    const card = bolaElement("div", null, "finding-card");
+
+    card.appendChild(
+      bolaElement(
+        "h3",
+        finding.finding || "Unnamed finding"
+      )
+    );
+
+    const severity = bolaElement(
+      "span",
+      String(finding.severity || "unknown").toUpperCase(),
+      "severity-badge"
+    );
+
+    card.appendChild(severity);
+
+    bolaAddField(card, "Target", finding.target);
+    bolaAddField(card, "Module", finding.module);
+    bolaAddField(card, "Confidence", finding.confidence);
+
+    if (finding.detected_by) {
+      bolaAddField(
+        card,
+        "Detected by",
+        finding.detected_by
+      );
+    }
+
+    if (finding.needs_review === true) {
+      const warning = bolaElement(
+        "p",
+        "NEEDS HUMAN REVIEW",
+        "bola-review-warning"
+      );
+
+      warning.style.fontWeight = "bold";
+      warning.style.color = "#ffb347";
+
+      card.appendChild(warning);
+    }
+
+    if (
+      finding.evidence !== undefined &&
+      finding.evidence !== null
+    ) {
+      card.appendChild(
+        bolaElement("h4", "Evidence")
+      );
+
+      let evidenceText;
+
+      if (typeof finding.evidence === "object") {
+        evidenceText = JSON.stringify(
+          finding.evidence,
+          null,
+          2
+        );
+      } else {
+        evidenceText = String(finding.evidence);
+      }
+
+      const evidence = bolaElement(
+        "pre",
+        evidenceText.slice(0, 600)
+      );
+
+      evidence.style.whiteSpace = "pre-wrap";
+      evidence.style.overflowWrap = "anywhere";
+
+      card.appendChild(evidence);
+    }
+
+    if (finding.plain_english) {
+      bolaAddField(
+        card,
+        "Explanation",
+        finding.plain_english
+      );
+    }
+
+    if (finding.fix_suggestion) {
+      bolaAddField(
+        card,
+        "Suggested Fix",
+        finding.fix_suggestion
+      );
+    }
+
+    if (finding.ai_reasoning) {
+      bolaAddField(
+        card,
+        "AI Reasoning",
+        finding.ai_reasoning
+      );
+    }
+
+    bolaResults.appendChild(card);
+  });
+}
+
+if (bolaForm && bolaResults && bolaScanBtn) {
+  bolaForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!bolaForm.reportValidity()) {
+      return;
+    }
+
+    const extraPaths = document
+      .getElementById("bola-extra-paths")
+      .value
+      .split(/\r?\n/)
+      .map((path) => path.trim())
+      .filter(Boolean);
+
+    const payload = {
+      target_url: document
+        .getElementById("bola-target-url")
+        .value.trim(),
+
+      bola_user_a_token: document
+        .getElementById("bola-user-a-token")
+        .value.trim(),
+
+      bola_user_a_resource_id: document
+        .getElementById("bola-user-a-resource")
+        .value.trim(),
+
+      bola_user_b_token: document
+        .getElementById("bola-user-b-token")
+        .value.trim(),
+
+      bola_user_b_resource_id: document
+        .getElementById("bola-user-b-resource")
+        .value.trim(),
+
+      bola_auth_header: document
+        .getElementById("bola-auth-header")
+        .value.trim() || "Authorization",
+
+      use_ai_agent_for_bola: document
+        .getElementById("bola-use-ai")
+        .checked,
+
+      bola_extra_paths: extraPaths.length
+        ? extraPaths
+        : null
+    };
+
+    bolaScanBtn.disabled = true;
+    bolaScanBtn.textContent = "SCANNING...";
+
+    bolaShowMessage(
+      "BOLA scan running... this can take several minutes"
+    );
+
+    try {
+      const response = await fetch("/api/scans/full", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const detail = data.detail;
+
+        let message = "BOLA scan failed";
+
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail !== undefined) {
+          message = JSON.stringify(detail);
+        }
+
+        throw new Error(message);
+      }
+
+      bolaRenderFindings(data);
+
+      // Keep existing dashboard report button in sync.
+      if (typeof currentScanId !== "undefined") {
+        currentScanId = data.scan_id;
+      }
+
+      // Refresh the rest of the dashboard.
+      const refreshes = [];
+
+      if (typeof loadStats === "function") {
+        refreshes.push(loadStats());
+      }
+
+      if (typeof loadFindings === "function") {
+        refreshes.push(loadFindings());
+      }
+
+      if (typeof loadScanHistory === "function") {
+        refreshes.push(loadScanHistory());
+      }
+
+      const refreshResults = await Promise.allSettled(
+        refreshes
+      );
+
+      if (refreshResults.some(
+        (result) => result.status === "rejected"
+      )) {
+        console.warn(
+          "BOLA scan completed, but some dashboard panels did not refresh."
+        );
+      }
+
+    } catch (error) {
+      bolaShowMessage(`Error: ${error.message}`);
+      console.error("BOLA scan error:", error);
+
+    } finally {
+      bolaScanBtn.disabled = false;
+      bolaScanBtn.textContent = "RUN BOLA SCAN";
+    }
+  });
+}
+

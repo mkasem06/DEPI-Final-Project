@@ -101,6 +101,115 @@
     </section>
 
 
+    <!-- SECURITY MODULE / 03 - BOLA Assessment -->
+    <section class="recon-panel" id="bola-panel">
+    <div class="recon-top">
+        <div>
+        <p>SECURITY MODULE / 03</p>
+        <h2>BOLA Assessment</h2>
+        <p>Test object-level authorization using two authorized test accounts.</p>
+        </div>
+    </div>
+
+    <form id="bola-form" autocomplete="off">
+        <div class="recon-input-row">
+        <label for="bola-target-url">Target URL *</label>
+        <input
+            id="bola-target-url"
+            type="url"
+            placeholder="http://127.0.0.1:5000"
+            required
+            autocomplete="off"
+        />
+        </div>
+
+        <h3>User A — Test Account</h3>
+        <div class="recon-input-row">
+        <label for="bola-user-a-token">User A Token *</label>
+        <input
+            id="bola-user-a-token"
+            type="password"
+            placeholder="Bearer token-alice"
+            required
+            autocomplete="off"
+        />
+
+        <label for="bola-user-a-resource">Owned Resource ID *</label>
+        <input
+            id="bola-user-a-resource"
+            type="text"
+            placeholder="1"
+            required
+        />
+        </div>
+
+        <h3>User B — Test Account</h3>
+        <div class="recon-input-row">
+        <label for="bola-user-b-token">User B Token *</label>
+        <input
+            id="bola-user-b-token"
+            type="password"
+            placeholder="Bearer token-bob"
+            required
+            autocomplete="off"
+        />
+
+        <label for="bola-user-b-resource">Owned Resource ID *</label>
+        <input
+            id="bola-user-b-resource"
+            type="text"
+            placeholder="2"
+            required
+        />
+        </div>
+
+        <div class="recon-input-row">
+        <label for="bola-auth-header">Authentication Header</label>
+        <input
+            id="bola-auth-header"
+            type="text"
+            value="Authorization"
+            placeholder="Authorization"
+        />
+        </div>
+
+        <div class="recon-input-row">
+        <label for="bola-extra-paths">
+            Extra Endpoint Paths (optional, one per line)
+        </label>
+        <textarea
+            id="bola-extra-paths"
+            rows="4"
+            placeholder="/api/orders/{id}&#10;/api/safe/orders/{id}"
+        ></textarea>
+        </div>
+
+        <div class="recon-input-row">
+        <label for="bola-use-ai">
+            <input id="bola-use-ai" type="checkbox" />
+            Use AI agent (slower)
+        </label>
+        </div>
+
+        <div class="recon-input-row">
+        <button type="submit" id="bola-scan-btn">
+            RUN BOLA SCAN
+        </button>
+        </div>
+    </form>
+
+    <div
+        class="recon-output"
+        id="bola-results"
+        role="status"
+        aria-live="polite"
+    >
+        BOLA scan results will appear here.
+    </div>
+    </section>
+
+
+
     <!-- ============================= -->
     <!-- VULNERABILITY STATISTICS -->
     <!-- ============================= -->
@@ -130,6 +239,9 @@
         <option value="xss">XSS</option>
         <option value="misconfig">Misconfiguration</option>
         <option value="bola">BOLA</option> 
+        <option value="bola">BOLA (code-verified)</option>
+        <option value="bola_agent">BOLA (AI agent only)</option>
+
 
     </select>
 
