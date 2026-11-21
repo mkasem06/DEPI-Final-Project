@@ -153,4 +153,5 @@ def build_candidates_from_paths(paths: list) -> list:
                 "id_location": "path",
                 "rationale": "Manually supplied candidate path.",
             })
+
     return candidates

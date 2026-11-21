@@ -1027,3 +1027,822 @@ h2,
         padding: 18px;
     }
 }
+
+
+/* FULL SCAN BUTTON */
+
+#full-scan-btn {
+    padding: 14px 24px;
+    border: 1px solid #a855f7;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #5227a5, #7c3aed);
+    color: white;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.4);
+    transition: 0.25s ease;
+}
+
+#full-scan-btn:hover {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+    transform: translateY(-2px);
+}
+
+#full-scan-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+    transform: none;
+}
+
+/* PRINT DASHBOARD BUTTON */
+
+.dashboard-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0 30px;
+}
+
+#print-dashboard {
+    padding: 12px 24px;
+    border: 1px solid #00e5ff;
+    border-radius: 10px;
+    background: rgba(0, 229, 255, 0.08);
+    color: #00e5ff;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.25);
+    transition: 0.25s ease;
+}
+
+#print-dashboard:hover {
+    background: rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 28px rgba(0, 229, 255, 0.6);
+}
+
+/* RESPONSIVE BUTTON LAYOUT */
+
+@media (max-width: 850px) {
+    .recon-input-row {
+        flex-wrap: wrap;
+    }
+
+    #full-scan-btn {
+        width: 100%;
+    }
+}
+
+/* PRINT-FRIENDLY DASHBOARD */
+
+@media print {
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    #scan-button,
+    #full-scan-btn,
+    #print-dashboard,
+    #module-filter,
+    #target-url {
+        display: none !important;
+    }
+
+    .dashboard-actions {
+        display: none !important;
+    }
+
+    .stat-card,
+    .finding-card,
+    .recon-panel,
+    .history-panel {
+        box-shadow: none !important;
+        break-inside: avoid;
+        border-color: #ccc !important;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .history-table th,
+    .history-table td {
+        color: black !important;
+        border: 1px solid #ccc !important;
+    }
+}
+
+
+/* =========================================
+   CLEAN PROFESSIONAL PDF REPORT
+========================================= */
+
+@page {
+    size: A4 portrait;
+    margin: 14mm;
+}
+
+@media print {
+
+    html, body {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #111827 !important;
+        font-size: 11pt !important;
+        overflow: visible !important;
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Hide interactive controls */
+    button,
+    input,
+    select,
+    label[for="target-url"],
+    label[for="module-filter"],
+    .dashboard-actions,
+    .recon-output,
+    .recon-panel {
+        display: none !important;
+    }
+
+    /* Main headings */
+    h1, h2, h3, p, span {
+        color: #111827 !important;
+        opacity: 1 !important;
+    }
+
+    h1 {
+        font-size: 21pt !important;
+        margin: 0 0 8mm !important;
+    }
+
+    h2 {
+        font-size: 15pt !important;
+        margin: 8mm 0 4mm !important;
+        break-after: avoid;
+    }
+
+    /* Statistics */
+    #stats {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 4mm !important;
+        width: 100% !important;
+    }
+
+    .stat-card {
+        position: static !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 5mm !important;
+        margin: 0 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 3mm !important;
+        background: #fff !important;
+        break-inside: avoid !important;
+    }
+
+    .stat-card::before,
+    .stat-card::after,
+    .stat-bar {
+        display: none !important;
+    }
+
+    .stat-label {
+        display: block !important;
+        font-size: 9pt !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+    }
+
+    .stat-number {
+        display: block !important;
+        position: static !important;
+        font-size: 24pt !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        margin-top: 2mm !important;
+        color: #111827 !important;
+    }
+
+    /* Findings */
+    #findings {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .finding-card {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 0 5mm !important;
+        padding: 5mm !important;
+        background: #fff !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 3mm !important;
+        break-inside: avoid-page;
+        overflow: visible !important;
+    }
+
+    .finding-card::before,
+    .finding-card::after {
+        display: none !important;
+    }
+
+    .finding-card * {
+        color: #111827 !important;
+        overflow-wrap: anywhere !important;
+        white-space: normal !important;
+    }
+
+    .finding-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 4mm !important;
+        align-items: flex-start !important;
+    }
+
+    .severity-badge {
+        position: static !important;
+        flex-shrink: 0;
+        border: 1px solid #94a3b8 !important;
+        background: #f1f5f9 !important;
+        color: #111827 !important;
+    }
+
+    /* Scan history */
+    .history-panel {
+        width: 100% !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        overflow: visible !important;
+    }
+
+    .history-table-wrapper {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    .history-table {
+        width: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+        font-size: 8pt !important;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 2mm !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #111827 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .history-table thead {
+        display: table-header-group;
+    }
+
+    .history-table tr {
+        break-inside: avoid;
+    }
+
+    .history-badge {
+        display: none !important;
+    }
+}
+
+
+/* =========================================
+   BOLA ASSESSMENT
+========================================= */
+
+#bola-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+#bola-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    margin-top: 25px;
+}
+
+/* =========================================
+   FORM FIELDS
+========================================= */
+
+#bola-panel .bola-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+}
+
+#bola-panel .bola-field label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #a9bfd8;
+    margin: 0;
+}
+
+#bola-panel .bola-field input,
+#bola-panel .bola-field textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    padding: 16px 18px;
+    background: #091628;
+
+    border: 1px solid #2c4965;
+    border-radius: 11px;
+
+    color: #edf5ff;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+
+    outline: none;
+
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease;
+}
+
+#bola-panel .bola-field input:focus,
+#bola-panel .bola-field textarea:focus {
+    background: #0b1b30;
+    border-color: #42d9ff;
+
+    box-shadow:
+        0 0 0 3px rgba(66, 217, 255, 0.08),
+        0 0 20px rgba(66, 217, 255, 0.08);
+}
+
+#bola-panel input::placeholder,
+#bola-panel textarea::placeholder {
+    color: #6e89a8;
+}
+
+/* =========================================
+   ACCOUNT CARDS
+========================================= */
+
+#bola-panel .bola-accounts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    width: 100%;
+}
+
+#bola-panel .bola-account {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    padding: 24px;
+    min-width: 0;
+    overflow: hidden;
+
+    border: 1px solid #29455f;
+    border-radius: 16px;
+
+    background: linear-gradient(
+        145deg,
+        #15263d,
+        #101a2e
+    );
+
+    transition:
+        border-color 0.3s ease,
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+#bola-panel .bola-account::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    border-radius: 50%;
+}
+
+#bola-panel .bola-account-a::before {
+    background: #42d9ff;
+    box-shadow: 0 0 20px #42d9ff;
+}
+
+#bola-panel .bola-account-b::before {
+    background: #ad89ff;
+    box-shadow: 0 0 20px #ad89ff;
+}
+
+#bola-panel .bola-account-a:hover {
+    border-color: rgba(66, 217, 255, 0.6);
+    box-shadow: 0 0 25px rgba(66, 217, 255, 0.08);
+    transform: translateY(-3px);
+}
+
+#bola-panel .bola-account-b:hover {
+    border-color: rgba(173, 137, 255, 0.6);
+    box-shadow: 0 0 25px rgba(173, 137, 255, 0.08);
+    transform: translateY(-3px);
+}
+
+/* =========================================
+   ACCOUNT HEADINGS
+========================================= */
+
+#bola-panel .bola-account-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(140, 170, 210, 0.12);
+}
+
+#bola-panel .bola-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+
+    border-radius: 13px;
+    font-size: 23px;
+    font-weight: 800;
+}
+
+#bola-panel .bola-account-a .bola-avatar {
+    color: #42d9ff;
+    background: rgba(66, 217, 255, 0.1);
+    border: 1px solid rgba(66, 217, 255, 0.3);
+}
+
+#bola-panel .bola-account-b .bola-avatar {
+    color: #ad89ff;
+    background: rgba(173, 137, 255, 0.1);
+    border: 1px solid rgba(173, 137, 255, 0.3);
+}
+
+#bola-panel .bola-account-heading h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 5px;
+}
+
+#bola-panel .bola-account-a h3 {
+    color: #42d9ff;
+}
+
+#bola-panel .bola-account-b h3 {
+    color: #ad89ff;
+}
+
+#bola-panel .bola-account-heading p {
+    font-size: 12px;
+    color: #8fa6c3;
+    margin: 0;
+}
+
+/* =========================================
+   ENDPOINT TEXTAREA
+========================================= */
+
+#bola-panel .bola-field textarea {
+    min-height: 115px;
+    resize: vertical;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+#bola-panel .bola-optional {
+    padding: 4px 8px;
+    background: rgba(140, 170, 210, 0.08);
+    border-radius: 5px;
+    color: #829ab7;
+    font-size: 9px;
+    letter-spacing: 0.7px;
+}
+
+#bola-panel .bola-helper {
+    color: #7892b1;
+    font-size: 12px;
+}
+
+/* =========================================
+   AI ASSISTED OPTION
+========================================= */
+
+#bola-panel .bola-ai-option {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    margin: 0;
+
+    padding: 20px;
+    border: 1px solid rgba(173, 137, 255, 0.25);
+    border-radius: 13px;
+
+    background: linear-gradient(
+        110deg,
+        rgba(173, 137, 255, 0.08),
+        rgba(66, 217, 255, 0.03)
+    );
+
+    cursor: pointer;
+
+    transition:
+        background 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+#bola-panel .bola-ai-option:hover {
+    border-color: rgba(173, 137, 255, 0.65);
+}
+
+#bola-panel .bola-ai-option:has(input:checked) {
+    border-color: #ad89ff;
+    background: rgba(173, 137, 255, 0.12);
+
+    box-shadow: 0 0 20px rgba(173, 137, 255, 0.1);
+}
+
+#bola-panel #bola-use-ai {
+    appearance: none;
+    display: grid;
+    place-content: center;
+
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+
+    background: #0b1628;
+    border: 1px solid #7581a6;
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+#bola-panel #bola-use-ai:checked {
+    background: #ad89ff;
+    border-color: #ad89ff;
+}
+
+#bola-panel #bola-use-ai:checked::after {
+    content: "✓";
+    color: #091628;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+#bola-panel #bola-use-ai:focus-visible {
+    outline: 2px solid #42d9ff;
+    outline-offset: 4px;
+}
+
+#bola-panel .bola-ai-icon {
+    color: #ad89ff;
+    font-size: 28px;
+    text-shadow: 0 0 15px rgba(173, 137, 255, 0.5);
+}
+
+#bola-panel .bola-ai-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#bola-panel .bola-ai-text strong {
+    color: #e6ddff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+#bola-panel .bola-ai-text span {
+    color: #8fa6c3;
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: normal;
+}
+
+#bola-panel .bola-ai-badge {
+    padding: 6px 10px;
+    background: rgba(173, 137, 255, 0.12);
+    border: 1px solid rgba(173, 137, 255, 0.2);
+    border-radius: 6px;
+    color: #ad89ff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+/* =========================================
+   SCAN BUTTON
+========================================= */
+
+#bola-panel #bola-scan-btn {
+    width: 100%;
+    padding: 18px 24px;
+
+    background: linear-gradient(
+        110deg,
+        #42d9ff,
+        #a48aff
+    );
+
+    border: none;
+    border-radius: 12px;
+
+    color: #071426;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        opacity 0.25s ease;
+}
+
+#bola-panel #bola-scan-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 0 22px rgba(66, 217, 255, 0.28),
+        0 0 30px rgba(164, 138, 255, 0.12);
+}
+
+#bola-panel #bola-scan-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    animation: bolaScanning 1.8s infinite;
+}
+
+@keyframes bolaScanning {
+    0%, 100% {
+        opacity: 0.65;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* =========================================
+   BOLA SCAN OUTPUT
+========================================= */
+
+#bola-panel .recon-output {
+    margin-top: 25px;
+}
+
+#bola-results {
+    padding: 14px 0 0;
+    color: #a9bfd8;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+#bola-results .finding-card {
+    margin: 12px 0;
+    padding: 20px;
+
+    background: linear-gradient(
+        145deg,
+        #14243b,
+        #101b2e
+    );
+
+    border: 1px solid rgba(66, 217, 255, 0.3);
+    border-radius: 12px;
+}
+
+#bola-results pre {
+    padding: 16px;
+    background: #071020;
+    border: 1px solid #29455f;
+    border-radius: 9px;
+
+    color: #a7e9ff;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
+
+@media (max-width: 768px) {
+
+    #bola-panel .bola-accounts {
+        grid-template-columns: 1fr;
+    }
+
+    #bola-panel .bola-account {
+        padding: 18px;
+    }
+
+    #bola-panel .bola-ai-option {
+        padding: 15px;
+        gap: 10px;
+    }
+
+    #bola-panel .bola-ai-badge {
+        display: none;
+    }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    #bola-panel *,
+    #bola-panel *::before,
+    #bola-panel *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
+}
+/* Security scan button icons */
+
+#scan-button,
+#full-scan-btn,
+#bola-scan-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.scan-icon {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.4s ease;
+}
+
+/* Hover animations */
+
+#scan-button:hover:not(:disabled) .scan-icon {
+    transform: rotate(90deg);
+}
+
+#full-scan-btn:hover:not(:disabled) .scan-icon {
+    transform: rotate(180deg);
+}
+
+#bola-scan-btn:hover:not(:disabled) .scan-icon {
+    transform: scale(1.15);
+}

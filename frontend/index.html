@@ -10,6 +10,7 @@
 
     <!-- Connect our CSS -->
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=bola3">
 </head>
 
 <body>
@@ -22,7 +23,11 @@
 
     <p>AI-Assisted Web Application Security Scanner</p>
 
-
+    <div class="dashboard-actions">
+     <button type="button" id="print-dashboard">
+            🖨 PRINT DASHBOARD
+    </button>
+    </div>
     <!-- ============================= -->
     <!-- RECONNAISSANCE SCANNER -->
     <!-- ============================= -->
@@ -62,11 +67,26 @@
                     placeholder="https://example.com"
                     required
                 >
-
                 <button type="submit" id="scan-button">
-                    ⚡ INITIALIZE RECON
-                </button>
+                <svg viewBox="0 0 24 24" class="scan-icon"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="8"/>
+                    <path d="M12 2v6 M12 16v6 M2 12h6 M16 12h6"/>
+                    <circle cx="12" cy="12" r="1"/>
+                </svg>
+                INITIALIZE RECON
+            </button>
 
+                <button type="button" id="full-scan-btn">
+                <svg viewBox="0 0 24 24" class="scan-icon"
+                    fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="9"/>
+                    <circle cx="12" cy="12" r="5"/>
+                    <circle cx="12" cy="12" r="1"/>
+                    <path d="M12 12l8-8"/>
+                </svg>
+                RUN FULL SCAN
+            </button>
             </div>
 
         </form>
@@ -92,51 +112,231 @@
 
     </section>
 
-    <section class="recon-panel">
 
-        <div class="recon-top">
-            <div>
-                <span class="recon-eyebrow">
-                    ◈ SECURITY MODULE / 02
-                </span>
 
-                <h2>Reflected XSS Assessment</h2>
 
-                <p>Run the XSS scanner only against the server-authorized target.</p>
-            </div>
+ 
+<!-- SECURITY MODULE / 03 - BOLA Assessment -->
+
+<section class="recon-panel" id="bola-panel">
+
+    <div class="recon-top">
+        <div>
+            <span class="recon-eyebrow">
+                ◈ SECURITY MODULE / 02
+            </span>
+
+            <h2>BOLA Assessment</h2>
+
+            <p>
+                Test object-level authorization using
+                two authorized test accounts.
+            </p>
         </div>
+    </div>
 
-        <form id="xss-form">
-            <label for="xss-target-url">
-                AUTHORIZED TARGET ENDPOINT
+    <form id="bola-form" autocomplete="off">
+
+        <!-- Target URL -->
+
+        <div class="bola-field">
+            <label for="bola-target-url">
+                TARGET URL *
             </label>
 
-            <div class="recon-input-row">
-                <input
-                    type="url"
-                    id="xss-target-url"
-                    placeholder="https://authorized-example.com"
-                    required
-                >
-
-                <button type="submit" id="xss-scan-button">
-                    ⚡ RUN XSS SCAN
-                </button>
-            </div>
-        </form>
-
-        <div class="recon-output">
-            <div class="recon-output-title">
-                <span class="recon-dot"></span>
-                XSS SCAN OUTPUT
-            </div>
-
-            <div id="xss-results" aria-live="polite">
-                › Awaiting authorized target submission...
-            </div>
+            <input
+                id="bola-target-url"
+                type="url"
+                placeholder="http://127.0.0.1:5000"
+                required
+                autocomplete="off"
+            >
         </div>
 
-    </section>
+        <!-- Test Accounts -->
+
+        <div class="bola-accounts">
+
+            <!-- User A -->
+
+            <div class="bola-account bola-account-a">
+
+                <div class="bola-account-heading">
+                    <span class="bola-avatar">A</span>
+
+                    <div>
+                        <h3>User A</h3>
+                        <p>Authorized test account</p>
+                    </div>
+                </div>
+
+                <div class="bola-field">
+                    <label for="bola-user-a-token">
+                        ACCESS TOKEN *
+                    </label>
+
+                    <input
+                        id="bola-user-a-token"
+                        type="password"
+                        placeholder="Bearer token-alice"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="bola-field">
+                    <label for="bola-user-a-resource">
+                        OWNED RESOURCE ID *
+                    </label>
+
+                    <input
+                        id="bola-user-a-resource"
+                        type="text"
+                        placeholder="1"
+                        required
+                    >
+                </div>
+
+            </div>
+
+            <!-- User B -->
+
+            <div class="bola-account bola-account-b">
+
+                <div class="bola-account-heading">
+                    <span class="bola-avatar">B</span>
+
+                    <div>
+                        <h3>User B</h3>
+                        <p>Authorized test account</p>
+                    </div>
+                </div>
+
+                <div class="bola-field">
+                    <label for="bola-user-b-token">
+                        ACCESS TOKEN *
+                    </label>
+
+                    <input
+                        id="bola-user-b-token"
+                        type="password"
+                        placeholder="Bearer token-bob"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="bola-field">
+                    <label for="bola-user-b-resource">
+                        OWNED RESOURCE ID *
+                    </label>
+
+                    <input
+                        id="bola-user-b-resource"
+                        type="text"
+                        placeholder="2"
+                        required
+                    >
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Authentication Header -->
+
+        <div class="bola-field">
+
+            <label for="bola-auth-header">
+                AUTHENTICATION HEADER
+            </label>
+
+            <input
+                id="bola-auth-header"
+                type="text"
+                value="Authorization"
+                placeholder="Authorization"
+            >
+
+        </div>
+
+        <!-- Extra Endpoints -->
+
+        <div class="bola-field">
+
+            <label for="bola-extra-paths">
+                EXTRA ENDPOINT PATHS
+                <span class="bola-optional">OPTIONAL</span>
+            </label>
+
+            <textarea
+                id="bola-extra-paths"
+                rows="4"
+                placeholder="/api/orders/{id}&#10;/api/safe/orders/{id}"
+            ></textarea>
+
+            <span class="bola-helper">
+                Enter one endpoint template per line.
+            </span>
+
+        </div>
+
+        <!-- AI Option -->
+
+        <label class="bola-ai-option" for="bola-use-ai">
+
+            <input id="bola-use-ai" type="checkbox">
+
+            <span class="bola-ai-icon">✦</span>
+
+            <div class="bola-ai-text">
+                <strong>AI-Assisted Assessment</strong>
+
+                <span>
+                    Enable AI analysis and compare agent findings
+                    with deterministic results. May take longer.
+                </span>
+            </div>
+
+            <span class="bola-ai-badge">
+                AI AGENT
+            </span>
+
+        </label>
+
+        <!-- Scan Button -->
+
+        <button type="submit" id="bola-scan-btn">
+            <svg viewBox="0 0 24 24" class="scan-icon"
+                fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/>
+                <path d="m9 12 2 2 4-4"/>
+            </svg>
+            RUN BOLA SCAN
+        </button>
+
+    </form>
+
+    <!-- Scan Output -->
+
+    <div class="recon-output">
+
+        <div class="recon-output-title">
+            <span class="recon-dot"></span>
+            BOLA SCAN OUTPUT
+        </div>
+
+        <div
+            id="bola-results"
+            role="status"
+            aria-live="polite"
+        >
+            › Awaiting BOLA assessment...
+        </div>
+
+    </div>
+
+</section>
 
 
     <!-- ============================= -->
@@ -167,6 +367,10 @@
         <option value="sqli">SQL Injection</option>
         <option value="xss">XSS</option>
         <option value="misconfig">Misconfiguration</option>
+        <option value="bola">BOLA</option> 
+        <option value="bola">BOLA (code-verified)</option>
+        <option value="bola_agent">BOLA (AI agent only)</option>
+
 
     </select>
 
@@ -196,7 +400,7 @@
             </div>
 
             <span class="history-badge">
-                DEMO RECORDS
+                SCAN RECORDS
             </span>
 
         </div>

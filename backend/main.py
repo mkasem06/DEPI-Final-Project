@@ -1,27 +1,39 @@
-
 import ipaddress
-import socket
 import os
-from typing import Optional
+import socket
+from typing import List, Optional
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 from backend.database import (
     init_db,
     save_scan,
     get_scan_history,
-    get_all_findings,
+    get_scan_by_id,
 )
 
 from recon.recon import run as run_recon
+
+from sqli.sqli import run as run_sqli
+from misconfig.misconfig import run as run_misconfig
 from xss.xss import run as run_xss
 
-load_dotenv()
+from AI.bola_candidates import build_candidates_from_recon, build_candidates_from_paths
+from AI.bola_tester import run_bola_test, TestUser
+from AI.bola_compare import run_bola_comparison
+from AI.ai_layer import analyze_finding
+from AI.report_generator import generate_report
+from AI.report_html import render_report_html
+
+
+# Off by default. Set ALLOW_LOCAL_TARGETS=1 ONLY on a dev/demo machine to
+# allow scanning 127.0.0.1 / private IPs (needed for the local vulnerable app).
+ALLOW_LOCAL = os.getenv("ALLOW_LOCAL_TARGETS") == "1"
+
 
 # ---------------------------------------
 # INITIALIZE FASTAPI
@@ -43,11 +55,25 @@ app.mount(
 
 
 # ---------------------------------------
-# REQUEST MODEL
+# REQUEST MODELS
 # ---------------------------------------
 
 class ReconRequest(BaseModel):
     target_url: str
+
+
+class FullScanRequest(BaseModel):
+    target_url: str
+    bola_user_a_token: Optional[str] = None
+    bola_user_a_resource_id: Optional[str] = None
+    bola_user_b_token: Optional[str] = None
+    bola_user_b_resource_id: Optional[str] = None
+    bola_auth_header: Optional[str] = "Authorization"
+    # Off: code check only. On: runs code check + AI agent on every candidate
+    # and tags each finding with who detected it.
+    use_ai_agent_for_bola: Optional[bool] = False
+    # Fallback if recon doesn't crawl the API links, e.g. ["/api/orders/{id}"]
+    bola_extra_paths: Optional[List[str]] = None
 
 
 # ---------------------------------------
@@ -72,8 +98,8 @@ def validate_target(url: str):
     try:
         port = parsed.port
 
-        if port not in (None, 80, 443):
-            raise ValueError("Unsupported port")
+        if port is not None and not (1 <= port <= 65535):
+            raise ValueError("Invalid port")
 
         addresses = socket.getaddrinfo(
             parsed.hostname,
@@ -83,9 +109,12 @@ def validate_target(url: str):
             type=socket.SOCK_STREAM
         )
 
-        if not addresses or any(
-            not ipaddress.ip_address(item[4][0]).is_global
-            for item in addresses
+        if not addresses or (
+            not ALLOW_LOCAL
+            and any(
+                not ipaddress.ip_address(item[4][0]).is_global
+                for item in addresses
+            )
         ):
             raise ValueError("Non-public target")
 
@@ -112,33 +141,26 @@ def home():
 
 
 # ---------------------------------------
-# REAL RECONNAISSANCE SCAN
+# RECON
 # ---------------------------------------
-
 
 @app.post("/api/scans/recon")
 def start_recon(request: ReconRequest):
 
-    # Validate the entered URL
     validate_target(request.target_url)
 
     try:
-
-        # Call the actual reconnaissance module
         results = run_recon(request.target_url)
 
-        # Check if reconnaissance failed
         if "error" in results.get("tech_stack", {}):
             raise RuntimeError("Target could not be reached")
 
-        # Save successful scan in SQLite
         save_scan(
             target_url=request.target_url,
             scan_type="recon",
             status="completed"
         )
 
-        # Return real reconnaissance results
         return {
             "tech_stack": results.get("tech_stack", {}),
             "endpoints": results.get("endpoints", []),
@@ -149,7 +171,6 @@ def start_recon(request: ReconRequest):
 
         print(f"[!] Recon scan failed: {error}")
 
-        # Save failed scan in SQLite
         save_scan(
             target_url=request.target_url,
             scan_type="recon",
@@ -162,129 +183,165 @@ def start_recon(request: ReconRequest):
         )
 
 
-
 # ---------------------------------------
-# XSS SCAN
+# FULL SCAN
 # ---------------------------------------
 
-@app.post("/api/scans/xss")
-def start_xss_scan(request: ReconRequest):
+@app.post("/api/scans/full")
+def full_scan(request: FullScanRequest):
+
     validate_target(request.target_url)
+    target_url = request.target_url
 
-    authorized_target = os.getenv("AUTHORIZED_TARGET")
-
-    if not authorized_target:
-        raise HTTPException(
-            status_code=500,
-            detail="Authorized target is not configured",
-        )
+    os.environ["AUTHORIZED_TARGET"] = target_url
 
     try:
-        authorized = urlparse(authorized_target)
-        requested = urlparse(request.target_url)
+        recon_output = run_recon(target_url)
+    except Exception as error:
+        print(f"[!] Recon failed: {error}")
+        save_scan(target_url, "full", "failed", results={"error": "Recon failed"})
+        raise HTTPException(status_code=500, detail="Reconnaissance failed")
 
-        authorized_port = authorized.port or (
-            443 if authorized.scheme == "https" else 80
-        )
-        requested_port = requested.port or (
-            443 if requested.scheme == "https" else 80
-        )
+    if "error" in recon_output.get("tech_stack", {}):
+        save_scan(target_url, "full", "failed", results={"error": "Target unreachable"})
+        raise HTTPException(status_code=500, detail="Target unreachable")
 
-        if (
-            requested.scheme != authorized.scheme
-            or requested.hostname != authorized.hostname
-            or requested_port != authorized_port
-        ):
-            raise HTTPException(
-                status_code=403,
-                detail="Target is outside the authorized scope",
+    all_findings = []
+
+    try:
+        all_findings += run_sqli(recon_output)
+    except Exception as error:
+        print(f"[!] SQLi module failed: {error}")
+
+    try:
+        all_findings += run_xss(recon_output)
+    except Exception as error:
+        print(f"[!] XSS module failed: {error}")
+
+    try:
+        all_findings += run_misconfig(target_url, recon_output)
+    except Exception as error:
+        print(f"[!] Misconfig module failed: {error}")
+
+    if request.bola_user_a_token and request.bola_user_b_token:
+        try:
+            user_a = TestUser(
+                "User A", request.bola_user_a_token,
+                request.bola_user_a_resource_id, request.bola_auth_header,
+            )
+            user_b = TestUser(
+                "User B", request.bola_user_b_token,
+                request.bola_user_b_resource_id, request.bola_auth_header,
             )
 
-        recon_results = run_recon(request.target_url)
+            candidates = build_candidates_from_recon(target_url, recon_output)
 
-        if "error" in recon_results.get("tech_stack", {}):
-            raise RuntimeError("Reconnaissance failed")
+            # Fallback: add manually supplied paths that recon didn't find
+            known_paths = {c["path"] for c in candidates}
+            for extra in build_candidates_from_paths(request.bola_extra_paths):
+                if extra["path"] not in known_paths:
+                    candidates.append(extra)
 
-        diagnostics = {}
-        findings = run_xss(recon_results, diagnostics=diagnostics)
+            print(f"[BOLA] {len(candidates)} candidate(s): {[c['path'] for c in candidates]}")
 
-        if not isinstance(findings, list):
-            raise RuntimeError("XSS scanner returned an invalid result")
+            for candidate in candidates:
+                if request.use_ai_agent_for_bola:
+                    cmp = run_bola_comparison(target_url, candidate, user_a, user_b)
+                    det = cmp.get("deterministic_finding")
+                    ai = cmp.get("ai_finding")
+                    print(
+                        f"[BOLA] {candidate['path']} -> "
+                        f"code={'VULN' if det else 'no'} | "
+                        f"AI={'VULN' if ai else 'no'} | "
+                        f"agreement={cmp.get('agreement')}"
+                    )
 
-        scan_status = diagnostics.get("status", "incomplete")
-        save_scan(
-            target_url=request.target_url,
-            scan_type="xss",
-            status=scan_status,
-            results=findings,
-        )
+                    if det and ai:
+                        det["detected_by"] = "code + AI agent (both agree)"
+                        det["finding"] = "[CODE + AI] " + det["finding"]
+                        det["ai_reasoning"] = ai.get("finding")
+                        all_findings.append(det)
+                    elif det:
+                        det["detected_by"] = "code only"
+                        det["finding"] = "[CODE ONLY] " + det["finding"]
+                        all_findings.append(det)
+                    elif ai:
+                        ai["detected_by"] = "AI agent only (unverified)"
+                        ai["needs_review"] = True
+                        ai["finding"] = "[AI ONLY - UNVERIFIED] " + ai["finding"]
+                        all_findings.append(ai)
+                else:
+                    finding = run_bola_test(target_url, candidate, user_a, user_b)
+                    print(f"[BOLA] {candidate['path']} -> code={'VULN' if finding else 'no'}")
+                    if finding:
+                        finding["detected_by"] = "code only"
+                        finding["finding"] = "[CODE ONLY] " + finding["finding"]
+                        all_findings.append(finding)
+        except Exception as error:
+            print(f"[!] BOLA module failed: {error}")
+    else:
+        print("[*] Skipping BOLA: no test-user credentials were provided for this scan.")
 
-        return {
-            "target_url": request.target_url,
-            "scan_type": "xss",
-            "status": scan_status,
-            "findings_count": len(findings),
-            "findings": findings,
-            "diagnostics": diagnostics,
-        }
+    analyzed = [{**finding, **analyze_finding(finding)} for finding in all_findings]
 
-    except HTTPException:
-        raise
+    scan_id = save_scan(target_url, "full", "completed", results=analyzed)
 
-    except Exception as error:
-        print(f"[!] XSS scan failed: {error}")
-
-        save_scan(
-            target_url=request.target_url,
-            scan_type="xss",
-            status="failed",
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="XSS scan failed",
-        )
+    return {
+        "scan_id": scan_id,
+        "tech_stack": recon_output.get("tech_stack", {}),
+        "endpoint_count": len(recon_output.get("endpoints", [])),
+        "findings": analyzed,
+    }
 
 
 # ---------------------------------------
-# VULNERABILITY FINDINGS
+# FINDINGS
 # ---------------------------------------
 
 @app.get("/api/findings")
-def get_findings(module: Optional[str] = None):
-    return get_all_findings(module=module)
+def get_findings(scan_id: Optional[int] = None, module: Optional[str] = None):
+
+    if scan_id is not None:
+        scan = get_scan_by_id(scan_id)
+        findings = (scan.get("results") or []) if scan else []
+    else:
+        history = get_scan_history()
+        latest_full = next(
+            (row for row in history if row.get("scan_type") == "full"), None
+        )
+        if latest_full is None:
+            return []
+        scan = get_scan_by_id(latest_full["id"])
+        findings = (scan.get("results") or []) if scan else []
+
+    if isinstance(findings, dict):
+        return []
+
+    if module is not None:
+        findings = [
+            finding
+            for finding in findings
+            if finding.get("module") == module
+        ]
+
+    return findings
 
 
 # ---------------------------------------
-# VULNERABILITY STATISTICS
+# STATS
 # ---------------------------------------
 
 @app.get("/api/stats")
-def get_stats():
+def get_stats(scan_id: Optional[int] = None):
 
-    findings = get_findings()
+    findings = get_findings(scan_id=scan_id)
 
     total = len(findings)
 
-    critical = sum(
-        1 for finding in findings
-        if finding.get("severity") == "critical"
-    )
-
-    high = sum(
-        1 for finding in findings
-        if finding.get("severity") == "high"
-    )
-
-    medium = sum(
-        1 for finding in findings
-        if finding.get("severity") == "medium"
-    )
-
-    low = sum(
-        1 for finding in findings
-        if finding.get("severity") == "low"
-    )
+    critical = sum(1 for f in findings if f.get("severity") == "critical")
+    high = sum(1 for f in findings if f.get("severity") == "high")
+    medium = sum(1 for f in findings if f.get("severity") == "medium")
+    low = sum(1 for f in findings if f.get("severity") == "low")
 
     return {
         "total": total,
@@ -293,6 +350,39 @@ def get_stats():
         "medium": medium,
         "low": low
     }
+
+
+# ---------------------------------------
+# REPORT
+# ---------------------------------------
+
+@app.get("/api/scans/{scan_id}/report")
+def scan_report(scan_id: int):
+
+    scan = get_scan_by_id(scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    findings = scan.get("results")
+    if not isinstance(findings, list):
+        raise HTTPException(status_code=400, detail="This scan has no usable findings to report")
+
+    return generate_report(findings)
+
+
+@app.get("/api/scans/{scan_id}/report/html", response_class=HTMLResponse)
+def scan_report_html(scan_id: int):
+
+    scan = get_scan_by_id(scan_id)
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    findings = scan.get("results")
+    if not isinstance(findings, list):
+        raise HTTPException(status_code=400, detail="This scan has no usable findings to report")
+
+    report = generate_report(findings)
+    return render_report_html(report, target_url=scan.get("target_url", ""))
 
 
 # ---------------------------------------

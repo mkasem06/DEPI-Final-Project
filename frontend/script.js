@@ -1,20 +1,48 @@
 
+let currentScanId = null;
+console.log("NEW JAVASCRIPT VERSION LOADED");
+function scanUrl(path, module = "") {
+    const params = new URLSearchParams();
+
+    if (currentScanId != null) {
+        params.set("scan_id", currentScanId);
+    }
+
+    if (module) {
+        params.set("module", module);
+    }
+
+    return params.size ? `${path}?${params}` : path;
+}
+
+function displayValue(value) {
+    if (value == null || value === "") {
+        return "N/A";
+    }
+
+    return typeof value === "object"
+        ? JSON.stringify(value, null, 2)
+        : String(value);
+}
+
+
+/* ==========================================
+   DASHBOARD STATISTICS
+========================================== */
+
 async function loadStats() {
     try {
-        // Get statistics from FastAPI
-        const response = await fetch("/api/stats");
+        const response = await fetch(scanUrl("/api/stats"), {
+            cache: "no-store"
+        });
 
         if (!response.ok) {
             throw new Error("Failed to load statistics");
         }
 
-        // Convert JSON to a JavaScript object
         const data = await response.json();
-
-        // Find our statistics container
         const statsDiv = document.getElementById("stats");
 
-        // Create a separate card for each statistic
         statsDiv.innerHTML = `
             <div class="stat-card total">
                 <span class="stat-label">TOTAL FINDINGS</span>
@@ -50,61 +78,53 @@ async function loadStats() {
     } catch (error) {
         document.getElementById("stats").textContent =
             "Unable to load statistics.";
+
         console.error(error);
     }
 }
 
 
+/* ==========================================
+   VULNERABILITY FINDINGS
+========================================== */
+
 async function loadFindings(module = "") {
 
-    // Find the findings container in HTML
     const findingsDiv = document.getElementById("findings");
 
     try {
-        // Start with the findings API endpoint
-        let url = "/api/findings";
+        const url = scanUrl("/api/findings", module);
 
-        // If a module is selected, filter the findings
-        if (module !== "") {
-            url += "?module=" + encodeURIComponent(module);
-        }
+        const response = await fetch(url, {
+            cache: "no-store"
+        });
 
-        // Send a GET request to FastAPI
-        const response = await fetch(url);
-
-        // Check if the request was successful
         if (!response.ok) {
             throw new Error("Failed to load findings");
         }
 
-        // Convert JSON response into JavaScript data
         const findings = await response.json();
 
-        // Remove the previous findings from the page
         findingsDiv.replaceChildren();
 
-        // Check if there are no vulnerabilities
         if (findings.length === 0) {
             findingsDiv.textContent = "No vulnerabilities found.";
             return;
         }
 
-        // Loop through every vulnerability
-        findings.forEach(function(finding) {
+        findings.forEach(function (finding) {
 
-            // Create a new vulnerability card
             const card = document.createElement("div");
             card.className = "finding-card";
 
-            // Create the card header
             const header = document.createElement("div");
             header.className = "finding-header";
 
-            // Create the vulnerability name
             const name = document.createElement("h3");
-            name.textContent = finding.finding || "Unknown vulnerability";
 
-            // Create the severity badge
+            name.textContent =
+                finding.finding || "Unknown vulnerability";
+
             const severity = document.createElement("span");
 
             const level = String(
@@ -114,30 +134,29 @@ async function loadFindings(module = "") {
             severity.className = "severity-badge " + level;
             severity.textContent = level.toUpperCase();
 
-            // Add the name and severity to the header
             header.append(name, severity);
 
-            // Create the target information
             const target = document.createElement("p");
             target.textContent =
                 "Target: " + (finding.target || "N/A");
 
-            // Create the module information
             const moduleText = document.createElement("p");
             moduleText.textContent =
                 "Module: " + (finding.module || "N/A");
 
-            // Create the evidence information
             const evidence = document.createElement("p");
-            evidence.textContent =
-                "Evidence: " + (finding.evidence || "N/A");
 
-            // Create the confidence information
+            evidence.textContent =
+                "Evidence: " + displayValue(finding.evidence);
+
+            evidence.style.whiteSpace = "pre-wrap";
+            evidence.style.overflowWrap = "anywhere";
+
             const confidence = document.createElement("p");
+
             confidence.textContent =
                 "Confidence: " + (finding.confidence ?? "N/A");
 
-            // Add everything inside the card
             card.append(
                 header,
                 target,
@@ -146,53 +165,49 @@ async function loadFindings(module = "") {
                 confidence
             );
 
-            // Add the card to the webpage
             findingsDiv.appendChild(card);
         });
 
     } catch (error) {
-        findingsDiv.textContent = "Unable to load findings.";
+        findingsDiv.textContent =
+            "Unable to load findings.";
+
         console.error(error);
     }
 }
 
 
-// Load statistics when the page opens
-loadStats();
+/* ==========================================
+   MODULE FILTER
+========================================== */
 
-// Load findings when the page opens
-loadFindings();
-
-// Listen for changes in the module dropdown
 document.getElementById("module-filter").addEventListener(
     "change",
-    function(event) {
-
-        // Get the selected module and reload findings
+    function (event) {
         loadFindings(event.target.value);
     }
 );
 
 
-// Find the Recon form in our HTML
+/* ==========================================
+   RECONNAISSANCE SCAN
+========================================== */
+
 const reconForm = document.getElementById("recon-form");
 
-// Listen for the user submitting the form
-reconForm.addEventListener("submit", async function(event) {
+reconForm.addEventListener("submit", async function (event) {
 
-    // Prevent the browser from refreshing the page
     event.preventDefault();
 
-    // Read the URL entered by the user
-    const targetUrl = document.getElementById("target-url").value;
+    const targetUrl = document
+        .getElementById("target-url")
+        .value.trim();
 
-    // Find the results container
     const resultsDiv = document.getElementById("recon-results");
 
-    // Display a loading message
     resultsDiv.textContent = "Scanning target...";
+
     try {
-        // Send a POST request to FastAPI
         const response = await fetch("/api/scans/recon", {
             method: "POST",
 
@@ -205,275 +220,105 @@ reconForm.addEventListener("submit", async function(event) {
             })
         });
 
-        // Read the JSON response
         const data = await response.json();
 
-        // Check for API errors
         if (!response.ok) {
-            throw new Error(data.detail || "Recon request failed");
+            throw new Error(
+                displayValue(data.detail || "Recon request failed")
+            );
         }
 
-        // Display the mock Recon response safely as text
+        resultsDiv.replaceChildren();
 
-// Clear previous results
-resultsDiv.replaceChildren();
+        function createSection(title, items) {
 
-// Helper function to create a result section
-function createSection(title, items) {
-    const section = document.createElement("div");
-    section.className = "recon-result-card";
+            const section = document.createElement("div");
+            section.className = "recon-result-card";
 
-    const heading = document.createElement("h3");
-    heading.textContent = title;
-    section.appendChild(heading);
+            const heading = document.createElement("h3");
+            heading.textContent = title;
 
-    if (items.length === 0) {
-        const empty = document.createElement("p");
-        empty.textContent = "None discovered";
-        section.appendChild(empty);
-    } else {
-        items.forEach(function(item) {
-            const line = document.createElement("p");
-            line.textContent = String(item);
-            section.appendChild(line);
+            section.appendChild(heading);
+
+            if (items.length === 0) {
+
+                const empty = document.createElement("p");
+                empty.textContent = "None discovered";
+
+                section.appendChild(empty);
+
+            } else {
+
+                items.forEach(function (item) {
+
+                    const line = document.createElement("p");
+                    line.textContent = displayValue(item);
+
+                    section.appendChild(line);
+                });
+            }
+
+            resultsDiv.appendChild(section);
+        }
+
+        const technologies = Object.entries(
+            data.tech_stack || {}
+        ).map(([key, value]) => `${key}: ${value}`);
+
+        createSection(
+            "Detected Technologies",
+            technologies
+        );
+
+        createSection(
+            "Discovered Endpoints",
+            data.endpoints || []
+        );
+
+        const paramLines = (data.params || []).map(function(p) {
+            const method = p.method || "GET";
+            const url = p.url || "unknown URL";
+            const fields = Array.isArray(p.params) ? p.params.join(", ") : "none";
+            return `${method} ${url} — fields: ${fields}`;
         });
-    }
 
-    resultsDiv.appendChild(section);
-}
+        createSection("Discovered Parameters", paramLines);
 
-// Show technologies, endpoints, and parameters
-const technologies = Object.entries(data.tech_stack || {})
-    .map(([key, value]) => `${key}: ${value}`);
-
-createSection("Detected Technologies", technologies);
-
-createSection("Discovered Endpoints", data.endpoints || []);
-
-createSection("Discovered Parameters", data.params || []);
+        await loadScanHistory();
 
     } catch (error) {
-        resultsDiv.textContent = "Error: " + error.message;
+
+        resultsDiv.textContent =
+            "Error: " + error.message;
+
+        console.error(error);
     }
 });
 
 
-// ---------------------------------------
-// XSS SCAN FORM
-// ---------------------------------------
-
-const xssForm = document.getElementById("xss-form");
-
-if (xssForm) {
-    xssForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
-
-        const targetInput = document.getElementById("xss-target-url");
-        const resultsDiv = document.getElementById("xss-results");
-        const scanButton = document.getElementById("xss-scan-button");
-
-        if (!targetInput || !resultsDiv || !scanButton) {
-            console.error("XSS form is missing required HTML elements.");
-            return;
-        }
-
-        const targetUrl = targetInput.value.trim();
-
-        resultsDiv.textContent = "XSS scan running...";
-        scanButton.disabled = true;
-
-        try {
-            const response = await fetch("/api/scans/xss", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    target_url: targetUrl
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || "XSS scan failed");
-            }
-
-            resultsDiv.replaceChildren();
-
-            const summary = document.createElement("p");
-            const scanStatus = String(data.status || "unknown").toUpperCase();
-            summary.textContent =
-                `Scan status: ${scanStatus}. Findings: ${Number(data.findings_count) || 0}`;
-            resultsDiv.appendChild(summary);
-
-            const diagnostics = data.diagnostics || {};
-            const coverage = document.createElement("section");
-            coverage.className = "xss-diagnostics";
-
-            const coverageHeading = document.createElement("h3");
-            coverageHeading.textContent = "Scan coverage";
-            coverage.appendChild(coverageHeading);
-
-            const coverageSummary = document.createElement("p");
-            coverageSummary.textContent =
-                `Forms discovered: ${Number(diagnostics.form_count) || 0}; ` +
-                `tested: ${Number(diagnostics.forms_tested) || 0}; ` +
-                `skipped: ${Number(diagnostics.forms_skipped) || 0}; ` +
-                `failed: ${Number(diagnostics.forms_failed) || 0}; ` +
-                `incomplete: ${Number(diagnostics.forms_incomplete) || 0}; ` +
-                `HTTP requests: ${Number(diagnostics.requests_attempted) || 0}.`;
-            coverage.appendChild(coverageSummary);
-
-            const endpointReports = Array.isArray(diagnostics.endpoints)
-                ? diagnostics.endpoints
-                : [];
-            endpointReports.forEach(function (endpoint) {
-                const item = document.createElement("details");
-                const heading = document.createElement("summary");
-                const label = endpoint.is_form
-                    ? `Form ${endpoint.form_index}`
-                    : "Endpoint";
-                heading.textContent =
-                    `${label}: ${endpoint.method || "GET"} ${endpoint.url || "unknown"} — ` +
-                    `${String(endpoint.status || "unknown").toUpperCase()}`;
-                item.appendChild(heading);
-
-                if (endpoint.reason) {
-                    const reason = document.createElement("p");
-                    reason.textContent = endpoint.reason;
-                    item.appendChild(reason);
-                }
-
-                if (endpoint.page_url) {
-                    const source = document.createElement("p");
-                    source.textContent = "Form source: " + endpoint.page_url;
-                    item.appendChild(source);
-                }
-
-                const parameters = Array.isArray(endpoint.parameters)
-                    ? endpoint.parameters
-                    : [];
-                parameters.forEach(function (parameter) {
-                    const detail = document.createElement("p");
-                    detail.textContent =
-                        `Parameter ${parameter.name}: ${parameter.status}` +
-                        (parameter.reason ? ` — ${parameter.reason}` : "") +
-                        `; payload attempts: ${Number(parameter.payload_attempts) || 0}; ` +
-                        `responses: ${Number(parameter.responses) || 0}.`;
-                    item.appendChild(detail);
-                });
-
-                coverage.appendChild(item);
-            });
-            resultsDiv.appendChild(coverage);
-
-            const issues = Array.isArray(diagnostics.issues)
-                ? diagnostics.issues
-                : [];
-            if (issues.length > 0) {
-                const issueSection = document.createElement("section");
-                const issueHeading = document.createElement("h3");
-                issueHeading.textContent = "Scan errors and diagnostics";
-                issueSection.appendChild(issueHeading);
-
-                issues.forEach(function (issue) {
-                    const detail = document.createElement("p");
-                    const location = issue.url
-                        ? ` (${issue.url}${issue.parameter ? `, ${issue.parameter}` : ""})`
-                        : "";
-                    detail.textContent =
-                        `[${String(issue.kind || "issue").toUpperCase()}] ` +
-                        `${issue.message || "Unknown scan issue"}${location}`;
-                    issueSection.appendChild(detail);
-                });
-
-                resultsDiv.appendChild(issueSection);
-            }
-
-            const findings = Array.isArray(data.findings)
-                ? data.findings
-                : [];
-
-            if (findings.length === 0) {
-                const empty = document.createElement("p");
-                empty.textContent = data.status === "completed"
-                    ? "Scan completed; no XSS findings were reported."
-                    : "No XSS findings were reported. This scan was incomplete; review coverage and diagnostics.";
-                resultsDiv.appendChild(empty);
-            }
-
-            findings.forEach(function (finding) {
-                const card = document.createElement("article");
-                card.className = "finding-card";
-
-                const title = document.createElement("h3");
-                title.textContent = finding.finding || "XSS finding";
-
-                const severity = document.createElement("p");
-                severity.textContent =
-                    "Severity: " + (finding.severity || "Unknown");
-
-                const target = document.createElement("p");
-                target.textContent =
-                    "Target: " + (finding.target || targetUrl);
-
-                const evidence = document.createElement("p");
-                evidence.textContent =
-                    "Evidence: " + (finding.evidence || "N/A");
-
-                const confidence = document.createElement("p");
-                confidence.textContent =
-                    "Confidence: " + (finding.confidence ?? "N/A");
-
-                card.append(
-                    title,
-                    severity,
-                    target,
-                    evidence,
-                    confidence
-                );
-
-                resultsDiv.appendChild(card);
-            });
-
-            const filter = document.getElementById("module-filter");
-
-            await Promise.all([
-                loadStats(),
-                loadFindings(filter ? filter.value : ""),
-                loadScanHistory()
-            ]);
-        } catch (error) {
-            resultsDiv.textContent = "Error: " + error.message;
-            console.error("XSS scan error:", error);
-        } finally {
-            scanButton.disabled = false;
-        }
-    });
-}
-
+/* ==========================================
+   SCAN HISTORY
+========================================== */
 
 async function loadScanHistory() {
 
     const historyBody = document.getElementById("history-body");
 
     try {
-        // Request saved scans from FastAPI
-        const response = await fetch("/api/scans/history");
+        const response = await fetch("/api/scans/history", {
+            cache: "no-store"
+        });
 
         if (!response.ok) {
             throw new Error("Failed to load scan history");
         }
 
-        // Convert JSON into an array
         const scans = await response.json();
 
-        // Clear old rows
         historyBody.replaceChildren();
 
-        // Handle an empty database
         if (scans.length === 0) {
+
             const row = document.createElement("tr");
             const cell = document.createElement("td");
 
@@ -482,11 +327,11 @@ async function loadScanHistory() {
 
             row.appendChild(cell);
             historyBody.appendChild(row);
+
             return;
         }
 
-        // Create one table row per scan
-        scans.forEach(function(scan) {
+        scans.forEach(function (scan) {
 
             const row = document.createElement("tr");
 
@@ -498,9 +343,10 @@ async function loadScanHistory() {
                 scan.created_at
             ];
 
-            values.forEach(function(value, index) {
+            values.forEach(function (value, index) {
 
                 const cell = document.createElement("td");
+
                 cell.textContent = value ?? "N/A";
 
                 if (index === 0) {
@@ -518,6 +364,7 @@ async function loadScanHistory() {
         });
 
     } catch (error) {
+
         historyBody.replaceChildren();
 
         const row = document.createElement("tr");
@@ -533,5 +380,511 @@ async function loadScanHistory() {
     }
 }
 
-// Load saved scans when the page opens
-loadScanHistory();
+
+/* ==========================================
+   FULL VULNERABILITY SCAN
+========================================== */
+
+const fullScanButton = document.getElementById("full-scan-btn");
+
+if (fullScanButton) {
+
+    fullScanButton.addEventListener("click", async function () {
+
+        const targetUrl = document
+            .getElementById("target-url")
+            .value.trim();
+
+        const resultsDiv = document.getElementById("recon-results");
+
+        if (!targetUrl) {
+            resultsDiv.textContent = "Please enter a target URL.";
+            return;
+        }
+
+        const originalButton = fullScanButton.innerHTML;
+
+        fullScanButton.disabled = true;
+
+        resultsDiv.textContent =
+            "Full scan running. Please wait...";
+
+        try {
+
+            const response = await fetch("/api/scans/full", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    target_url: targetUrl
+                }),
+
+                cache: "no-store"
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    typeof data.detail === "string"
+                        ? data.detail
+                        : JSON.stringify(
+                            data.detail || "Full scan failed"
+                        )
+                );
+            }
+
+            currentScanId = data.scan_id;
+
+            resultsDiv.textContent =
+                "Full scan completed. Refreshing results...";
+
+            await Promise.all([
+                loadStats(),
+
+                loadFindings(
+                    document.getElementById("module-filter")?.value || ""
+                ),
+
+                loadScanHistory()
+            ]);
+
+            resultsDiv.textContent =
+                "Scan request completed. Check the findings and scan history.";
+
+        } catch (error) {
+
+            resultsDiv.textContent =
+                "Error: " + error.message;
+
+            console.error(error);
+
+        } finally {
+
+            fullScanButton.disabled = false;
+            fullScanButton.innerHTML = originalButton;
+        }
+    });
+}
+
+
+/* ==========================================
+   PRINT REPORT FOR CURRENT SCAN
+========================================== */
+
+document.getElementById("print-dashboard")
+    ?.addEventListener("click", function () {
+
+        if (currentScanId == null) {
+            alert("Please complete a full scan first.");
+            return;
+        }
+
+        window.open(
+            `/api/scans/${currentScanId}/report/html`,
+            "_blank"
+        );
+    });
+
+
+/* ==========================================
+   BOLA ASSESSMENT PANEL
+========================================== */
+
+const bolaForm = document.getElementById("bola-form");
+const bolaResults = document.getElementById("bola-results");
+const bolaScanBtn = document.getElementById("bola-scan-btn");
+
+
+function bolaElement(tag, text, className) {
+
+    const element = document.createElement(tag);
+
+    if (text !== undefined && text !== null) {
+        element.textContent = String(text);
+    }
+
+    if (className) {
+        element.className = className;
+    }
+
+    return element;
+}
+
+
+function bolaAddField(parent, label, value) {
+
+    if (
+        value === undefined ||
+        value === null ||
+        value === ""
+    ) {
+        return;
+    }
+
+    const row = bolaElement("p");
+    const heading = bolaElement("strong", `${label}: `);
+
+    row.appendChild(heading);
+
+    row.appendChild(
+        document.createTextNode(displayValue(value))
+    );
+
+    parent.appendChild(row);
+}
+
+
+function bolaClearResults() {
+    bolaResults.replaceChildren();
+}
+
+
+function bolaShowMessage(message) {
+
+    bolaClearResults();
+
+    bolaResults.appendChild(
+        bolaElement("p", message)
+    );
+}
+
+
+/* ==========================================
+   DISPLAY BOLA FINDINGS
+========================================== */
+
+function bolaRenderFindings(data) {
+
+    bolaClearResults();
+
+    const scanId = data.scan_id ?? "Unknown";
+
+    const findings = Array.isArray(data.findings)
+        ? data.findings.filter(f =>
+            ["bola", "bola_agent"].includes(
+                String(f.module || "").toLowerCase()
+            )
+        )
+        : [];
+
+    bolaResults.appendChild(
+        bolaElement("h3", `BOLA Scan #${scanId}`)
+    );
+
+    bolaResults.appendChild(
+        bolaElement(
+            "p",
+            `BOLA findings: ${findings.length}`
+        )
+    );
+
+    if (findings.length === 0) {
+
+        bolaResults.appendChild(
+            bolaElement("p", "No BOLA vulnerabilities found.")
+        );
+
+        return;
+    }
+
+    findings.forEach(function (finding) {
+
+        const card = bolaElement(
+            "div",
+            null,
+            "finding-card"
+        );
+
+        card.appendChild(
+            bolaElement(
+                "h3",
+                finding.finding || "Unnamed finding"
+            )
+        );
+
+        const level = String(
+            finding.severity || "unknown"
+        ).toLowerCase();
+
+        const severity = bolaElement(
+            "span",
+            level.toUpperCase(),
+            "severity-badge " + level
+        );
+
+        card.appendChild(severity);
+
+        bolaAddField(card, "Target", finding.target);
+        bolaAddField(card, "Module", finding.module);
+        bolaAddField(card, "Confidence", finding.confidence);
+
+        if (finding.detected_by) {
+
+            bolaAddField(
+                card,
+                "Detected by",
+                finding.detected_by
+            );
+        }
+
+        if (finding.needs_review === true) {
+
+            const warning = bolaElement(
+                "p",
+                "NEEDS HUMAN REVIEW",
+                "bola-review-warning"
+            );
+
+            warning.style.fontWeight = "bold";
+            warning.style.color = "#ffb347";
+
+            card.appendChild(warning);
+        }
+
+        if (
+            finding.evidence !== undefined &&
+            finding.evidence !== null
+        ) {
+
+            card.appendChild(
+                bolaElement("h4", "Evidence")
+            );
+
+            const evidence = bolaElement(
+                "pre",
+                displayValue(finding.evidence)
+            );
+
+            evidence.style.whiteSpace = "pre-wrap";
+            evidence.style.overflowWrap = "anywhere";
+
+            card.appendChild(evidence);
+        }
+
+        if (finding.plain_english) {
+
+            bolaAddField(
+                card,
+                "Explanation",
+                finding.plain_english
+            );
+        }
+
+        if (finding.fix_suggestion) {
+
+            bolaAddField(
+                card,
+                "Suggested Fix",
+                finding.fix_suggestion
+            );
+        }
+
+        if (finding.ai_reasoning) {
+
+            bolaAddField(
+                card,
+                "AI Reasoning",
+                finding.ai_reasoning
+            );
+        }
+
+        bolaResults.appendChild(card);
+    });
+}
+
+
+/* ==========================================
+   BOLA SCAN REQUEST
+========================================== */
+
+if (bolaForm && bolaResults && bolaScanBtn) {
+
+    bolaForm.addEventListener("submit", async function (event) {
+
+        event.preventDefault();
+
+        if (!bolaForm.reportValidity()) {
+            return;
+        }
+
+        const extraPaths = document
+            .getElementById("bola-extra-paths")
+            .value
+            .split(/\r?\n/)
+            .map(path => path.trim())
+            .filter(Boolean);
+
+        const payload = {
+
+            target_url: document
+                .getElementById("bola-target-url")
+                .value.trim(),
+
+            bola_user_a_token: document
+                .getElementById("bola-user-a-token")
+                .value.trim(),
+
+            bola_user_a_resource_id: document
+                .getElementById("bola-user-a-resource")
+                .value.trim(),
+
+            bola_user_b_token: document
+                .getElementById("bola-user-b-token")
+                .value.trim(),
+
+            bola_user_b_resource_id: document
+                .getElementById("bola-user-b-resource")
+                .value.trim(),
+
+            bola_auth_header: document
+                .getElementById("bola-auth-header")
+                .value.trim() || "Authorization",
+
+            use_ai_agent_for_bola: document
+                .getElementById("bola-use-ai")
+                .checked,
+
+            bola_extra_paths: extraPaths.length
+                ? extraPaths
+                : null
+        };
+
+        // Preserve the original button and SVG icon.
+
+        const originalBolaButton = bolaScanBtn.innerHTML;
+
+        bolaScanBtn.disabled = true;
+        bolaScanBtn.textContent = "SCANNING...";
+
+        bolaShowMessage(
+            "BOLA scan running... this can take several minutes."
+        );
+
+        try {
+
+            const response = await fetch("/api/scans/full", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(payload),
+
+                cache: "no-store"
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+
+                const detail = data.detail;
+
+                let message = "BOLA scan failed";
+
+                if (typeof detail === "string") {
+
+                    message = detail;
+
+                } else if (detail !== undefined) {
+
+                    message = JSON.stringify(detail);
+                }
+
+                throw new Error(message);
+            }
+
+            currentScanId = data.scan_id;
+                console.log("BOLA FINDINGS:", data.findings);
+
+            console.table(data.findings.map(f => ({
+                module: f.module,
+                detected_by: f.detected_by,
+                finding: f.finding
+            })));
+
+            bolaRenderFindings(data);
+
+            await Promise.all([
+                loadStats(),
+
+                loadFindings(
+                    document.getElementById("module-filter")?.value || ""
+                ),
+
+                loadScanHistory()
+            ]);
+
+        } catch (error) {
+
+            bolaShowMessage(
+                `Error: ${error.message}`
+            );
+
+            console.error("BOLA scan error:", error);
+
+        } finally {
+
+            // Restore the original SVG icon and button text.
+
+            bolaScanBtn.disabled = false;
+            bolaScanBtn.innerHTML = originalBolaButton;
+        }
+    });
+}
+
+
+/* ==========================================
+   INITIALIZE DASHBOARD
+========================================== */
+
+async function initializeDashboard() {
+
+    try {
+
+        const response = await fetch("/api/scans/history", {
+            cache: "no-store"
+        });
+
+        if (response.ok) {
+
+            const scans = await response.json();
+
+            const latest = scans.find(scan =>
+
+                ["full", "xss"].includes(scan.scan_type) &&
+
+                ["completed", "incomplete"].includes(scan.status)
+            );
+
+            if (currentScanId == null && latest) {
+                currentScanId = latest.id;
+            }
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Unable to select latest scan",
+            error
+        );
+    }
+
+    await Promise.all([
+        loadStats(),
+
+        loadFindings(
+            document.getElementById("module-filter")?.value || ""
+        ),
+
+        loadScanHistory()
+    ]);
+}
+
+
+initializeDashboard();
